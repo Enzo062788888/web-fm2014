@@ -58,28 +58,30 @@ const r2Client = new S3Client({
 const R2_BUCKET = process.env.R2_BUCKET_NAME || 'fm2014-players'
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL
 
-// Configuration Passport Google
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: process.env.CALLBACK_URL || 'http://localhost:8080/api/auth/callback/google'
-}, (accessToken, refreshToken, profile, done) => {
-  const email = profile.emails[0].value
-  let user = users.find(u => u.email === email)
-  
-  if (!user) {
-    user = {
-      id: Date.now(),
-      email,
-      name: profile.displayName,
-      googleId: profile.id,
-      provider: 'google'
+// Configuration Passport Google (optionnel)
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: process.env.CALLBACK_URL || 'http://localhost:8080/api/auth/callback/google'
+  }, (accessToken, refreshToken, profile, done) => {
+    const email = profile.emails[0].value
+    let user = users.find(u => u.email === email)
+    
+    if (!user) {
+      user = {
+        id: Date.now(),
+        email,
+        name: profile.displayName,
+        googleId: profile.id,
+        provider: 'google'
+      }
+      users.push(user)
     }
-    users.push(user)
-  }
-  
-  return done(null, user)
-}))
+    
+    return done(null, user)
+  }))
+}
 
 passport.serializeUser((user, done) => done(null, user.id))
 passport.deserializeUser((id, done) => {
@@ -102,20 +104,26 @@ app.use(passport.session())
 // Servir les fichiers statiques depuis le dossier public
 app.use(express.static(path.join(__dirname, 'public')))
 
-// Google OAuth routes (Passport)
-app.get('/auth/google', (req, res, next) => {
-  console.log('🔐 Redirection vers Google OAuth')
-  passport.authenticate('google', { 
-    scope: ['profile', 'email'] 
-  })(req, res, next)
-})
+// Google OAuth routes (Passport) - optionnel
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  app.get('/auth/google', (req, res, next) => {
+    console.log('🔐 Redirection vers Google OAuth')
+    passport.authenticate('google', { 
+      scope: ['profile', 'email'] 
+    })(req, res, next)
+  })
 
-app.get('/api/auth/callback/google',
-  passport.authenticate('google', { failureRedirect: '/auth.html' }),
-  (req, res) => {
-    res.redirect('/app.html')
-  }
-)
+  app.get('/api/auth/callback/google',
+    passport.authenticate('google', { failureRedirect: '/auth.html' }),
+    (req, res) => {
+      res.redirect('/app.html')
+    }
+  )
+} else {
+  app.get('/auth/google', (req, res) => {
+    res.status(503).json({ error: 'Google OAuth non configuré. Ajoute GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET à .env' })
+  })
+}
 
 // API Login (session locale)
 app.post('/api/login', (req, res) => {
@@ -310,8 +318,9 @@ app.post('/api/reset-password', async (req, res) => {
 
 // Global error handler
 app.use((err, _req, res, _next) => {
-  console.error('❌ Server error:', err?.stack || err)
-  res.status(500).json({ error: 'Internal Server Error' })
+  console.error('❌ Server error:', err?.stack || err)✅ Configuré' : '⚠️ Non configuré (optionnel)'}`)
+  console.log(`📧 Email: ${process.env.EMAIL_USER ? '✅ Configuré' : '⚠️ Utilise le mode test Ethereal'}`)
+  console.log(`🪣 Cloudflare R2: ${process.env.R2_BUCKET_NAME ? '✅ Configuré' : '⚠️ Non configuré (optionnel)'}
 })
 
 app.listen(PORT, () => {
