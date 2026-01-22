@@ -59,7 +59,7 @@ async function uploadToR2(imageBuffer, playerId) {
         });
         
         await s3Client.send(command);
-        console.log(`✅ Image uploadée : ${fileName}`);
+        console.log(` Image uploadée : ${fileName}`);
         
         return `${PUBLIC_URL}/${fileName}`;
     } catch (error) {
@@ -70,14 +70,14 @@ async function uploadToR2(imageBuffer, playerId) {
 
 // Fonction principale
 async function processPlayers() {
-    console.log(`🚀 Début du téléchargement de ${players.length} images...`);
+    console.log(` Début du téléchargement de ${players.length} images...`);
     
     const results = [];
     let success = 0;
     let failed = 0;
     
     for (const player of players) {
-        console.log(`\n📥 Traitement de ${player.name} (ID: ${player.id})...`);
+        console.log(`\n Traitement de ${player.name} (ID: ${player.id})...`);
         
         // Télécharger l'image
         const imageBuffer = await downloadImage(player.id);
@@ -109,7 +109,7 @@ async function processPlayers() {
         JSON.stringify(results, null, 2)
     );
     
-    console.log('\n✅ Téléchargement terminé !');
+    console.log('\n Téléchargement terminé !');
     console.log(`   Réussis : ${success}`);
     console.log(`   Échoués : ${failed}`);
     console.log(`   Résultats sauvegardés dans download-results.json`);

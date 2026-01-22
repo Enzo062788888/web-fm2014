@@ -1,7 +1,7 @@
 // FM2014 Web Generator - 32 attributes
 // Parsing logic mirrors the desktop script; defaults & transforms included.
 
-console.log('🚀 App.js chargé !');
+console.log(' App.js chargé !');
 
 const fileInput = document.querySelector('#file-input');
 const dropzone = document.querySelector('#dropzone');
@@ -121,7 +121,7 @@ function parseXml(text) {
   const data = { ...defaults };
   
   // Extraire l'UID du joueur depuis la balise UID
-  console.log('🔍 Recherche de la balise UID...');
+  console.log(' Recherche de la balise UID...');
   const uidNode = xml.querySelector('UID');
   console.log('UID Node trouvé:', uidNode);
   const playerId = uidNode?.getAttribute('Value') || null;
@@ -129,10 +129,10 @@ function parseXml(text) {
   
   if (playerId) {
     currentPlayerId = playerId;
-    console.log('✅ UID détecté:', playerId);
+    console.log(' UID détecté:', playerId);
     showImagePreview(playerId);
   } else {
-    console.log('❌ Aucun UID trouvé dans le XML');
+    console.log(' Aucun UID trouvé dans le XML');
     // Essayer d'autres balises possibles
     const generalNode = xml.querySelector('General');
     const altPlayerId = generalNode?.getAttribute('UI') || null;
@@ -205,18 +205,18 @@ function escapeXml(str) {
 }
 
 function handleFile(file) {
-  console.log('📁 Fichier reçu:', file.name);
+  console.log(' Fichier reçu:', file.name);
   const reader = new FileReader();
   reader.onload = () => {
     try {
-      console.log('📖 Contenu XML lu, taille:', reader.result.length);
+      console.log(' Contenu XML lu, taille:', reader.result.length);
       const data = parseXml(reader.result);
       renderAttributes(data);
       const xmlOut = buildOutputXml(data);
       output.value = xmlOut;
       downloadBtn.disabled = false;
       
-      // 🏴 Afficher le drapeau basé sur le NationID
+      //  Afficher le drapeau basé sur le NationID
       if (data.nation_id) {
         const flagSection = document.getElementById('flag-section');
         const flagDisplay = document.getElementById('flag-display');
@@ -236,7 +236,7 @@ function handleFile(file) {
       
       downloadBtn.onclick = () => downloadXml(xmlOut, `${data.name || 'player'}_FM2014.xml`);
     } catch (e) {
-      console.error('❌ Erreur parsing:', e);
+      console.error(' Erreur parsing:', e);
       alert('Erreur: ' + e.message);
     }
   };
@@ -287,7 +287,7 @@ function savePlayerToDatabase(data, xmlContent) {
     localStorage.setItem('fm2014_players', JSON.stringify(players));
     
     // Afficher une notification
-    showNotification(`✅ ${player.name} ajouté à la base de données avec image R2`);
+    showNotification(` ${player.name} ajouté à la base de données avec image R2`);
   } catch (e) {
     console.error('Erreur sauvegarde:', e);
   }
@@ -355,7 +355,7 @@ let countryMap = {}; // { "788": "Portugal", ... }
 // Charger le CSV au démarrage
 async function loadCountriesCsv() {
   try {
-    console.log('🔄 Tentative de chargement du CSV...');
+    console.log(' Tentative de chargement du CSV...');
     
     // Essayer d'abord le chemin direct dans public/
     const response = await fetch('countries-codes.csv');
@@ -365,11 +365,11 @@ async function loadCountriesCsv() {
     }
     
     const csvText = await response.text();
-    console.log('📄 CSV brut récupéré:', csvText.substring(0, 100) + '...');
+    console.log(' CSV brut récupéré:', csvText.substring(0, 100) + '...');
     
     // Parser le CSV
     const lines = csvText.trim().split('\n');
-    console.log(`📊 ${lines.length} lignes trouvées`);
+    console.log(` ${lines.length} lignes trouvées`);
     
     lines.forEach((line, index) => {
       if (index === 0) {
@@ -387,13 +387,13 @@ async function loadCountriesCsv() {
       
       if (id && country) {
         countryMap[id] = country;
-        console.log(`✅ Ajouté: "${id}" → "${country}"`);
+        console.log(` Ajouté: "${id}" → "${country}"`);
       } else {
-        console.warn(`⚠️ Ligne ${index} ignorée: id="${id}" country="${country}"`);
+        console.warn(`️ Ligne ${index} ignorée: id="${id}" country="${country}"`);
       }
     });
     
-    console.log('✅ CSV des pays chargé:', countryMap);
+    console.log(' CSV des pays chargé:', countryMap);
     
     // Forcer l'ajout des pays manquants si pas chargés
     if (!countryMap['1649']) {
@@ -406,21 +406,21 @@ async function loadCountriesCsv() {
     }
 
     // Test spécifique pour le Brésil
-    console.log('🧪 Test Brésil - ID "1651":', countryMap['1651']);
-    console.log('🧪 Test Portugal - ID "788":', countryMap['788']);
-    console.log('🧪 Test Argentine - ID "1649":', countryMap['1649']);
-    console.log('🧪 Toutes les clés:', Object.keys(countryMap));
+    console.log(' Test Brésil - ID "1651":', countryMap['1651']);
+    console.log(' Test Portugal - ID "788":', countryMap['788']);
+    console.log(' Test Argentine - ID "1649":', countryMap['1649']);
+    console.log(' Toutes les clés:', Object.keys(countryMap));
   } catch (e) {
-    console.error('❌ Erreur chargement CSV:', e);
+    console.error(' Erreur chargement CSV:', e);
   }
 }
 
 // Récupérer le pays à partir d'un NationID
 function getCountryByNationId(nationId) {
-  console.log(`🔍 Recherche pays pour NationID: "${nationId}"`);
-  console.log('🗺️ CountryMap actuel:', countryMap);
+  console.log(` Recherche pays pour NationID: "${nationId}"`);
+  console.log('️ CountryMap actuel:', countryMap);
   const country = countryMap[nationId] || null;
-  console.log(`✅ Résultat: ${country || 'Non trouvé'}`);
+  console.log(` Résultat: ${country || 'Non trouvé'}`);
   return country;
 }
 
@@ -429,13 +429,13 @@ function displayFlagByNationId(nationId, containerElement) {
   const country = getCountryByNationId(nationId);
   
   if (!country) {
-    console.warn(`⚠️ Aucun pays trouvé pour NationID: ${nationId}`);
+    console.warn(`️ Aucun pays trouvé pour NationID: ${nationId}`);
     return null;
   }
   
   const flagUrl = `https://pub-775c150b8211432db9dbf4f59277c50f.r2.dev/drapeaux/${country}.png`;
   
-  console.log(`🏴 Drapeau pour ${country} (ID: ${nationId}):`, flagUrl);
+  console.log(` Drapeau pour ${country} (ID: ${nationId}):`, flagUrl);
   
   if (containerElement) {
     containerElement.innerHTML = `
@@ -444,7 +444,7 @@ function displayFlagByNationId(nationId, containerElement) {
         alt="Drapeau de ${country}" 
         style="width: 80px; height: 50px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);"
         onerror="this.alt='Drapeau non trouvé'; this.style.background='#eee';"
-        onload="console.log('✅ Drapeau chargé pour ${country}')"
+        onload="console.log(' Drapeau chargé pour ${country}')"
       />
       <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; font-weight: 600;">${country}</p>
     `;
@@ -460,17 +460,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Fonction pour afficher l'image en prévisualisation
 function showImagePreview(playerId) {
-  console.log('📸 Affichage image pour UID:', playerId);
+  console.log(' Affichage image pour UID:', playerId);
   const preview = document.getElementById('image-preview');
   
   if (!preview) {
-    console.log('❌ Élément image-preview non trouvé');
+    console.log(' Élément image-preview non trouvé');
     return;
   }
   
   // Construire l'URL R2
   const imageUrl = `https://pub-775c150b8211432db9dbf4f59277c50f.r2.dev/Phot/${playerId}.png`;
-  console.log('🔗 URL image construite:', imageUrl);
+  console.log(' URL image construite:', imageUrl);
   
   // Afficher l'image
   preview.innerHTML = `
@@ -478,8 +478,8 @@ function showImagePreview(playerId) {
       src="${imageUrl}" 
       alt="Joueur ${playerId}" 
       style="max-width: 200px; max-height: 200px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"
-      onerror="this.parentElement.innerHTML='<p style=\\'color: #f5576c; margin: 0;\\'>❌ Image non trouvée pour UID: ${playerId}</p>'"
-      onload="console.log('✅ Image chargée avec succès')"
+      onerror="this.parentElement.innerHTML='<p style=\\'color: #f5576c; margin: 0;\\'> Image non trouvée pour UID: ${playerId}</p>'"
+      onload="console.log(' Image chargée avec succès')"
     />
     <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">UID: ${playerId}</p>
     <p style="font-size: 0.85rem; color: #888;">URL: ${imageUrl}</p>
@@ -489,7 +489,7 @@ function showImagePreview(playerId) {
 // Fonction pour récupérer automatiquement l'URL de l'image d'un joueur
 async function uploadPlayerImage(playerId, playerName, localPlayerId) {
   try {
-    showNotification(`🖼️ Récupération de l'image de ${playerName}...`);
+    showNotification(`️ Récupération de l'image de ${playerName}...`);
     
     const response = await fetch('/api/upload-player-image', {
       method: 'POST',
@@ -512,7 +512,7 @@ async function uploadPlayerImage(playerId, playerName, localPlayerId) {
         localStorage.setItem('fm2014_players', JSON.stringify(players));
       }
       
-      showNotification(`✅ URL image de ${playerName} récupérée !`);
+      showNotification(` URL image de ${playerName} récupérée !`);
       
       // Rafraîchir l'affichage de la base de données si visible
       const dbSection = document.getElementById('database-section');
@@ -520,11 +520,11 @@ async function uploadPlayerImage(playerId, playerName, localPlayerId) {
         loadPlayersDatabase();
       }
     } else {
-      showNotification(`⚠️ Erreur lors de la récupération de l'URL image`);
+      showNotification(`️ Erreur lors de la récupération de l'URL image`);
     }
   } catch (error) {
     console.error('Erreur récupération URL image:', error);
-    showNotification(`❌ Erreur lors de la récupération de l'URL image`);
+    showNotification(` Erreur lors de la récupération de l'URL image`);
   }
 }
 

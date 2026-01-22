@@ -685,34 +685,34 @@
   <!-- Menu latéral -->
   <nav class="sidebar">
     <div class="sidebar-header">
-      <h2>🎮 FM2014</h2>
+      <h2> FM2014</h2>
     </div>
     
     <div class="sidebar-menu">
       <div class="menu-item active" data-section="generator">
-        <span class="menu-item-icon">📄</span>
+        <span class="menu-item-icon"></span>
         <span>Générateur XML</span>
       </div>
       <div class="menu-item" data-section="fantasy">
-        <span class="menu-item-icon">⚽</span>
+        <span class="menu-item-icon"></span>
         <span>Fantasy</span>
       </div>
       <div class="menu-item" data-section="database">
-        <span class="menu-item-icon">💾</span>
+        <span class="menu-item-icon"></span>
         <span>Base de données</span>
       </div>
       <div class="menu-item" data-section="settings">
-        <span class="menu-item-icon">⚙️</span>
+        <span class="menu-item-icon">️</span>
         <span>Paramètres</span>
       </div>
     </div>
 
     <div class="sidebar-footer">
       <div class="user-info-sidebar">
-        <span>👤</span>
+        <span></span>
         <span id="sidebar-username">Utilisateur</span>
       </div>
-      <button class="btn-logout" onclick="logout()">🚪 Déconnexion</button>
+      <button class="btn-logout" onclick="logout()"> Déconnexion</button>
     </div>
   </nav>
 
@@ -727,9 +727,9 @@
           <h1>FM2014 XML Generator</h1>
           <p>Importe un XML joueur, visualise les attributs, génère un XML compatible FM2014 (32 records).</p>
           <div class="actions">
-            <label class="btn" for="file-input">📂 Importer un XML</label>
+            <label class="btn" for="file-input"> Importer un XML</label>
             <input id="file-input" type="file" accept=".xml" hidden />
-            <button id="download-btn" class="btn btn-secondary" disabled>💾 Télécharger le XML généré</button>
+            <button id="download-btn" class="btn btn-secondary" disabled> Télécharger le XML généré</button>
           </div>
           <div id="dropzone" class="dropzone">Glisse ton fichier XML ici</div>
         </div>
@@ -742,7 +742,7 @@
           
           <!-- Affichage du drapeau du pays -->
           <div id="flag-section" style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #e0e0e0; display: none;">
-            <h3 style="margin: 0 0 1rem 0; color: #1e3c72;">🏴 Nation</h3>
+            <h3 style="margin: 0 0 1rem 0; color: #1e3c72;"> Nation</h3>
             <div id="flag-display" style="text-align: center; background: #f5f5f5; border-radius: 8px; padding: 1.5rem;">
               <p style="color: #999; margin: 0;">En attente...</p>
             </div>
@@ -750,7 +750,7 @@
           
           <!-- Prévisualisation de l'image du joueur -->
           <div id="image-preview-section" style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #e0e0e0; display: none;">
-            <h3 style="margin: 0 0 1rem 0; color: #1e3c72;">🖼️ Prévisualisation Image</h3>
+            <h3 style="margin: 0 0 1rem 0; color: #1e3c72;">️ Prévisualisation Image</h3>
             <div id="image-preview" style="text-align: center; min-height: 100px; background: #f5f5f5; border-radius: 8px; padding: 1rem;">
               <p style="color: #999; margin: 0;">Importez un fichier XML pour voir l'image du joueur</p>
             </div>
@@ -770,7 +770,7 @@
       <header class="hero" style="padding: 2rem 0;">
         <div class="hero__overlay"></div>
         <div class="hero__content">
-          <h1>⚽ Fantasy Team Builder</h1>
+          <h1> Fantasy Team Builder</h1>
           <p>Composez votre équipe avec les joueurs de votre base de données</p>
         </div>
       </header>
@@ -814,9 +814,9 @@
             
             <!-- Action Buttons -->
             <div style="display: flex; gap: 1rem;">
-              <button class="btn" onclick="saveTeam()" style="flex: 1;">💾 Sauvegarder</button>
-              <button class="btn btn-secondary" onclick="clearTeam()" style="flex: 1;">🗑️ Effacer</button>
-              <button class="btn" onclick="exportTeam()" style="flex: 1;">📥 Exporter</button>
+              <button class="btn" onclick="saveTeam()" style="flex: 1;"> Sauvegarder</button>
+              <button class="btn btn-secondary" onclick="clearTeam()" style="flex: 1;">️ Effacer</button>
+              <button class="btn" onclick="exportTeam()" style="flex: 1;"> Exporter</button>
             </div>
           </div>
         </div>
@@ -842,7 +842,7 @@
       <header class="hero">
         <div class="hero__overlay"></div>
         <div class="hero__content">
-          <h1>💾 Base de données</h1>
+          <h1> Base de données</h1>
           <p>Gérez vos profils de joueurs sauvegardés</p>
         </div>
       </header>
@@ -852,7 +852,7 @@
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
             <h2>Profils enregistrés (<span id="player-count">0</span>)</h2>
             <button class="btn btn-secondary" onclick="clearDatabase()" style="padding: 0.5rem 1rem;">
-              🗑️ Tout supprimer
+              ️ Tout supprimer
             </button>
           </div>
           
@@ -870,7 +870,7 @@
       <header class="hero">
         <div class="hero__overlay"></div>
         <div class="hero__content">
-          <h1>⚙️ Paramètres</h1>
+          <h1>️ Paramètres</h1>
           <p>Configurez votre expérience</p>
         </div>
       </header>
@@ -879,7 +879,7 @@
         <section class="card" style="grid-column: 1 / -1;">
           <h2>Paramètres de l'application</h2>
           <div style="padding: 3rem; text-align: center; color: #999;">
-            <div style="font-size: 4rem; margin-bottom: 1rem;">🛠️</div>
+            <div style="font-size: 4rem; margin-bottom: 1rem;">️</div>
             <h3>Fonctionnalité à venir</h3>
             <p>Les paramètres seront bientôt disponibles</p>
           </div>
@@ -911,14 +911,14 @@
         <p id="modal-player-info" style="margin: 0; opacity: 0.9;">Informations générales</p>
       </div>
       <div class="modal-body">
-        <h3 style="margin: 0 0 1rem 0; color: #1e3c72;">📊 Statistiques complètes</h3>
+        <h3 style="margin: 0 0 1rem 0; color: #1e3c72;"> Statistiques complètes</h3>
         <div id="modal-stats" class="stats-grid">
           <!-- Les stats seront chargées ici -->
         </div>
       </div>
       <div class="modal-actions">
         <button onclick="downloadCurrentPlayerXml()" class="btn" style="flex: 1;">
-          💾 Télécharger le XML
+           Télécharger le XML
         </button>
         <button onclick="closePlayerModal()" class="btn btn-secondary" style="flex: 1;">
           Fermer
@@ -930,9 +930,9 @@
   <script src="js/app.js"></script>
   <script>
     // DEBUG: Tester le chargement du CSV
-    console.log('🔧 DEBUG: Vérification du CSV...');
+    console.log(' DEBUG: Vérification du CSV...');
     setTimeout(() => {
-      console.log('📊 countryMap actuel:', countryMap);
+      console.log(' countryMap actuel:', countryMap);
       console.log('🇵🇹 Recherche NationID 788:', getCountryByNationId('788'));
     }, 500);
 
@@ -1015,7 +1015,7 @@
       if (players.length === 0) {
         playersList.innerHTML = `
           <div style="grid-column: 1 / -1; padding: 3rem; text-align: center; color: #999;">
-            <div style="font-size: 4rem; margin-bottom: 1rem;">📭</div>
+            <div style="font-size: 4rem; margin-bottom: 1rem;"></div>
             <h3>Aucun joueur enregistré</h3>
             <p>Importez un fichier XML dans le générateur pour commencer</p>
           </div>
@@ -1079,13 +1079,13 @@
               onclick="downloadPlayerXml(${index})" 
               class="btn" 
               style="flex: 1; padding: 0.75rem; font-size: 0.9rem;">
-              💾 XML
+               XML
             </button>
             <button 
               onclick="deletePlayer(${index})" 
               class="btn-secondary" 
               style="padding: 0.75rem; background: #f5576c; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
-              🗑️
+              ️
             </button>
           </div>
         </div>
@@ -1320,7 +1320,7 @@
       if (filtered.length === 0) {
         availablePlayersDiv.innerHTML = `
           <div style="text-align: center; color: #999; padding: 2rem;">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔍</div>
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;"></div>
             <p>Aucun joueur trouvé</p>
             <p style="font-size: 0.9rem;">Essayez un autre nom</p>
           </div>
@@ -1349,7 +1349,7 @@
               </div>
             ` : `
               <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #ddd 0%, #bbb 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                <span style="font-size: 1.5rem;">👤</span>
+                <span style="font-size: 1.5rem;"></span>
               </div>
             `}
             <div style="flex: 1; min-width: 0;">
@@ -1379,7 +1379,7 @@
 
     function assignPlayer(playerIndex) {
       if (!selectedSlot) {
-        alert('⚠️ Sélectionnez d\'abord une position sur le terrain');
+        alert('️ Sélectionnez d\'abord une position sur le terrain');
         return;
       }
       assignPlayerToSlot(playerIndex, selectedSlot);
@@ -1393,7 +1393,7 @@
       if (!player) return;
 
       if (Object.values(currentTeam).some(p => p && p.id === player.id)) {
-        alert('⚠️ Ce joueur est déjà sur le terrain');
+        alert('️ Ce joueur est déjà sur le terrain');
         return;
       }
 
@@ -1460,7 +1460,7 @@
         z-index: 10000;
         font-weight: 600;
       `;
-      notification.textContent = '✅ Équipe sauvegardée !';
+      notification.textContent = ' Équipe sauvegardée !';
       document.body.appendChild(notification);
       
       setTimeout(() => notification.remove(), 2000);
@@ -1494,11 +1494,11 @@
         .map(([position, player]) => `${position}: ${player.name} (CA: ${player.ca})`)
         .join('\n');
       
-      const exportText = `🏆 MON ÉQUIPE FM2014 🏆\n\nFormation: ${formation}\n\n${teamList || 'Aucun joueur sélectionné'}`;
+      const exportText = ` MON ÉQUIPE FM2014 \n\nFormation: ${formation}\n\n${teamList || 'Aucun joueur sélectionné'}`;
       
       // Copier dans le presse-papier
       navigator.clipboard.writeText(exportText).then(() => {
-        alert('✅ Équipe copiée dans le presse-papier !');
+        alert(' Équipe copiée dans le presse-papier !');
       }).catch(() => {
         // Fallback: afficher dans une alerte
         alert(exportText);

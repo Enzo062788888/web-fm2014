@@ -9,7 +9,7 @@ const results = require('./download-results.json');
 // const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 async function importToDatabase() {
-    console.log('📊 Import des URLs dans la base de données...');
+    console.log(' Import des URLs dans la base de données...');
     
     let imported = 0;
     
@@ -22,12 +22,12 @@ async function importToDatabase() {
             //     image_url: player.url
             // });
             
-            console.log(`✅ Importé : ${player.name} -> ${player.url}`);
+            console.log(` Importé : ${player.name} -> ${player.url}`);
             imported++;
         }
     }
     
-    console.log(`\n✅ ${imported} joueurs importés dans la base de données !`);
+    console.log(`\n ${imported} joueurs importés dans la base de données !`);
 }
 
 // Lancer l'import

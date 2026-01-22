@@ -36,7 +36,7 @@ if (loginForm) {
       const data = await res.json()
 
       if (res.ok && data.success) {
-        showMessage('login', 'success', '✅ Connexion réussie !')
+        showMessage('login', 'success', ' Connexion réussie !')
         setTimeout(() => window.location.href = 'app.html', 1000)
       } else {
         showMessage('login', 'error', data.message || 'Erreur de connexion.')
@@ -71,7 +71,7 @@ if (signupForm) {
       const data = await res.json()
 
       if (res.ok && data.success) {
-        showMessage('signup', 'success', '✅ Compte créé ! Redirection...')
+        showMessage('signup', 'success', ' Compte créé ! Redirection...')
         setTimeout(() => window.location.href = 'app.html', 1500)
       } else {
         showMessage('signup', 'error', data.message || 'Erreur lors de la création.')

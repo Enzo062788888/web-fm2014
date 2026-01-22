@@ -33,7 +33,7 @@ if (loggedInUser) {
     userInfo.className = 'user-info'
     userInfo.innerHTML = `
       <span class="user-name">${loggedInUser.name || 'Utilisateur'}</span>
-      <button class="btn btn-sm" onclick="logout()">🚪 Déconnexion</button>
+      <button class="btn btn-sm" onclick="logout()"> Déconnexion</button>
     `
     actionsDiv.appendChild(userInfo)
   }
