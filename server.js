@@ -2,7 +2,7 @@ import 'dotenv/config'
 import express from 'express'
 import session from 'express-session'
 import passport from 'passport'
-import { Strategy as GoogleStrategy } from 'passport-google-oauth20'
+import { OIDCStrategy } from 'passport-azure-ad'
 import { S3Client } from '@aws-sdk/client-s3'
 import nodemailer from 'nodemailer'
 import crypto from 'crypto'
@@ -63,22 +63,28 @@ const resetTokens = {}  // Tokens de reinitialisation de mot de passe
 // Structure: userData[userId] = { players: [], teams: [], databases: [] }
 const userData = {}
 
-// Configuration Passport Google OAuth (optionnel)
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: `${process.env.BASE_URL || 'http://localhost:3000'}/api/auth/callback/google`,
-    scope: ['profile', 'email']
+// Configuration Passport Microsoft OAuth (optionnel)
+if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET) {
+  passport.use(new OIDCStrategy({
+    identityMetadata: `https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID || 'common'}/v2.0/.well-known/openid-configuration`,
+    clientID: process.env.MICROSOFT_CLIENT_ID,
+    clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
+    responseType: 'code id_token',
+    responseMode: 'form_post',
+    redirectUrl: `${process.env.BASE_URL || 'http://localhost:3000'}/api/auth/callback/microsoft`,
+    allowHttpForRedirectUrl: process.env.NODE_ENV !== 'production',
+    validateIssuer: false,
+    passReqToCallback: false,
+    scope: ['profile', 'email', 'openid']
   },
-  (_accessToken, _refreshToken, profile, done) => {
-    let user = users.find(u => u.email === profile.emails[0].value)
+  (iss, sub, profile, accessToken, refreshToken, done) => {
+    let user = users.find(u => u.email === profile._json.email)
     if (!user) {
       user = {
         id: Date.now(),
-        email: profile.emails[0].value,
-        name: profile.displayName,
-        googleId: profile.id
+        email: profile._json.email,
+        name: profile.displayName || profile._json.name,
+        microsoftId: profile.oid
       }
       users.push(user)
       // Initialiser les donnees pour ce nouvel utilisateur
@@ -116,24 +122,24 @@ function isAuthenticated(req, res, next) {
   res.status(401).json({ success: false, message: 'Non authentifie' })
 }
 
-// Google OAuth routes (Passport) - optionnel
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  app.get('/auth/google', (req, res, next) => {
-    console.log('Redirection vers Google OAuth')
-    passport.authenticate('google', { 
-      scope: ['profile', 'email'] 
+// Microsoft OAuth routes (Passport) - optionnel
+if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET) {
+  app.get('/auth/microsoft', (req, res, next) => {
+    console.log('Redirection vers Microsoft OAuth')
+    passport.authenticate('azuread-openidconnect', { 
+      failureRedirect: '/auth.html'
     })(req, res, next)
   })
 
-  app.get('/api/auth/callback/google',
-    passport.authenticate('google', { failureRedirect: '/auth.html' }),
+  app.post('/api/auth/callback/microsoft',
+    passport.authenticate('azuread-openidconnect', { failureRedirect: '/auth.html' }),
     (req, res) => {
       res.redirect('/app.html')
     }
   )
 } else {
-  app.get('/auth/google', (req, res) => {
-    res.status(503).json({ error: 'Google OAuth non configure. Ajoute GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET a .env' })
+  app.get('/auth/microsoft', (req, res) => {
+    res.status(503).json({ error: 'Microsoft OAuth non configure. Ajoute MICROSOFT_CLIENT_ID et MICROSOFT_CLIENT_SECRET a .env' })
   })
 }
 
@@ -413,7 +419,7 @@ app.use((err, _req, res, _next) => {
 
 app.listen(PORT, () => {
   console.log(`Serveur lance sur http://localhost:${PORT}`)
-  console.log(`Google OAuth: ${process.env.GOOGLE_CLIENT_ID ? 'OK Configure' : 'Non configure (optionnel)'}`)
+  console.log(`Microsoft OAuth: ${process.env.MICROSOFT_CLIENT_ID ? 'OK Configure' : 'Non configure (optionnel)'}`)
   console.log(`Email: ${process.env.EMAIL_USER ? 'OK Configure' : 'Utilise le mode test Ethereal'}`)
   console.log(`Cloudflare R2: ${process.env.R2_BUCKET_NAME ? 'OK Configure' : 'Non configure (optionnel)'}`)
   console.log('=== SYSTEME MULTI-UTILISATEUR ACTIF ===')

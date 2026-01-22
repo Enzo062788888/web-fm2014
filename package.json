@@ -17,6 +17,7 @@
     "next-auth": "^4.24.13",
     "nodemailer": "^7.0.12",
     "passport": "^0.7.0",
+    "passport-azure-ad": "^4.3.5",
     "passport-google-oauth20": "^2.0.0"
   }
 }
