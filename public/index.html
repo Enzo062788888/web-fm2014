@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FM2014 XML Generator</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <script>
+    // Point d'entrée principal : vérifie auth et redirige
+    (function() {
+      const currentUser = localStorage.getItem('fm2014_current_user');
+      if (!currentUser) {
+        // Non connecté → auth
+        window.location.href = 'auth.html';
+      } else {
+        // Connecté → app
+        window.location.href = 'app.html';
+      }
+    })();
+  </script>
+</body>
+</html>

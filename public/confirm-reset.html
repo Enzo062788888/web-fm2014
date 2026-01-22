@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confirmer la réinitialisation - FM2014</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="hero hero--compact">
+    <div class="hero__overlay"></div>
+    <div class="hero__content">
+      <h1>Confirmer votre nouveau mot de passe</h1>
+      <p>Entrez votre nouveau mot de passe pour réinitialiser l'accès à votre compte.</p>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <section class="auth-grid">
+      <div class="auth-card" style="max-width: 500px; margin: 0 auto;">
+        <h2>Nouveau mot de passe</h2>
+        <div class="form-message" data-target="confirm"></div>
+        
+        <form id="confirm-form" class="auth-form" action="#" method="post">
+          <label class="field">
+            <span class="field__label">Nouveau mot de passe</span>
+            <input id="new-password" class="field__input" type="password" name="password" autocomplete="new-password" required />
+          </label>
+          <label class="field">
+            <span class="field__label">Confirmer le mot de passe</span>
+            <input id="confirm-password" class="field__input" type="password" name="confirmPassword" autocomplete="new-password" required />
+          </label>
+          <button class="btn" type="submit">Réinitialiser le mot de passe</button>
+          <a href="auth.html" class="link" style="display: block; text-align: center; margin-top: 1rem;">Retour à la connexion</a>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">FM2014 XML Generator — Comptes & Accès</footer>
+
+  <script>
+    const form = document.getElementById('confirm-form');
+    const passwordInput = document.getElementById('new-password');
+    const confirmInput = document.getElementById('confirm-password');
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    if (!token) {
+      showMessage('confirm', 'error', 'Lien de réinitialisation invalide ou expiré.');
+      form.style.display = 'none';
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const password = passwordInput.value;
+      const confirm = confirmInput.value;
+
+      if (password.length < 6) {
+        showMessage('confirm', 'error', 'Le mot de passe doit contenir au moins 6 caractères.');
+        return;
+      }
+
+      if (password !== confirm) {
+        showMessage('confirm', 'error', 'Les mots de passe ne correspondent pas.');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          showMessage('confirm', 'success', '✅ Mot de passe réinitialisé avec succès !');
+          setTimeout(() => window.location.href = 'auth.html', 2000);
+        } else {
+          showMessage('confirm', 'error', data.message || 'Erreur lors de la réinitialisation.');
+        }
+      } catch (err) {
+        showMessage('confirm', 'error', 'Erreur : ' + err.message);
+      }
+    });
+
+    function showMessage(target, type, text) {
+      const box = document.querySelector(`.form-message[data-target="${target}"]`);
+      if (!box) return;
+      box.textContent = text;
+      box.classList.remove('is-success', 'is-error', 'is-visible');
+      if (type === 'success') box.classList.add('is-success');
+      if (type === 'error') box.classList.add('is-error');
+      box.classList.add('is-visible');
+    }
+  </script>
+</body>
+</html>

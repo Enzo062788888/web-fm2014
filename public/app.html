@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FM2014 XML Generator (Web)</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    body {
+      display: flex;
+      margin: 0;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 250px;
+      background: linear-gradient(180deg, #1e3c72 0%, #2a5298 100%);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      height: 100vh;
+      left: 0;
+      top: 0;
+      box-shadow: 4px 0 12px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+    }
+
+    .sidebar-header {
+      padding: 1.5rem;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .sidebar-header h2 {
+      margin: 0;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .sidebar-menu {
+      flex: 1;
+      padding: 1rem 0;
+    }
+
+    .menu-item {
+      padding: 1rem 1.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-left: 4px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1rem;
+    }
+
+    .menu-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-left-color: rgba(255, 255, 255, 0.5);
+    }
+
+    .menu-item.active {
+      background: rgba(255, 255, 255, 0.15);
+      border-left-color: white;
+      font-weight: 600;
+    }
+
+    .menu-item-icon {
+      font-size: 1.2rem;
+    }
+
+    .sidebar-footer {
+      padding: 1rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .user-info-sidebar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+
+    .btn-logout {
+      padding: 0.75rem;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    .btn-logout:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .main-content {
+      margin-left: 250px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      width: calc(100% - 250px);
+      min-height: 100vh;
+    }
+
+    .content-section {
+      display: none;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .content-section.active {
+      display: flex;
+    }
+
+    /* Ajustements pour le hero */
+    .hero {
+      margin: 0;
+      flex-shrink: 0;
+    }
+
+    .grid {
+      margin: 0;
+      padding: 2rem;
+      flex: 1;
+    }
+
+    .footer {
+      margin: 0;
+      flex-shrink: 0;
+    }
+
+    /* Modal pour les détails du joueur */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      max-width: 900px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    .modal-header {
+      padding: 2rem;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      color: white;
+      border-radius: 16px 16px 0 0;
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .modal-close:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .modal-body {
+      padding: 2rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .stat-item {
+      padding: 1rem;
+      background: #f5f5f5;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stat-label {
+      font-weight: 600;
+      color: #666;
+    }
+
+    .stat-value {
+      font-size: 1.1rem;
+      color: #1e3c72;
+      font-weight: 700;
+    }
+
+    .modal-actions {
+      padding: 1.5rem 2rem;
+      border-top: 1px solid #e0e0e0;
+      display: flex;
+      gap: 1rem;
+    }
+
+    /* Fantasy - Terrain de foot */
+    .field-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 80px;
+      padding: 0;
+      width: 100%;
+      margin: 0;
+    }
+
+    .field-row.goalkeeper {
+      margin-bottom: 110px;
+    }
+
+    .field-row.defense {
+      margin-bottom: 110px;
+    }
+
+    .player-slot {
+      width: 100px;
+      height: 100px;
+      background: transparent;
+      border: 3px dashed #00ff88;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+      overflow: visible;
+    }
+
+    .player-slot:hover {
+      border-color: #00ff88;
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+    }
+
+    .player-slot.filled {
+      background: linear-gradient(135deg, #444 0%, #222 100%);
+      border: 3px solid #00ff88;
+      box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+      padding: 0;
+    }
+
+    .player-slot.filled:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 25px rgba(0, 255, 136, 0.6);
+    }
+
+    .player-slot.selected {
+      animation: pulse-selection 1s infinite;
+      border: 3px solid #FFD700;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+    }
+
+    @keyframes pulse-selection {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    .player-slot-content {
+      width: 100%;
+      height: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .player-slot-image {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      object-position: center;
+      border: 2px solid #00ff88;
+    }
+
+    .player-slot-empty {
+      font-size: 14px;
+      font-weight: bold;
+      color: #00ff88;
+      text-align: center;
+      background: rgba(68, 68, 68, 0.8);
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #00ff88;
+    }
+
+    .player-slot-info {
+      position: absolute;
+      bottom: 4px;
+      left: 6px;
+      right: 6px;
+      background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0.15));
+      padding: 0.25rem;
+      text-align: center;
+      border-radius: 12px;
+      backdrop-filter: blur(2px);
+    }
+
+    .player-slot-name {
+      color: white;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-align: center;
+      margin: 0;
+      line-height: 1.1;
+    }
+
+    .player-slot-empty {
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+
+    .player-slot-remove {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      width: 28px;
+      height: 28px;
+      background: #f5576c;
+      border: 2px solid white;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: white;
+      font-size: 1rem;
+      font-weight: bold;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      z-index: 10;
+    }
+
+    .player-slot.filled:hover .player-slot-remove {
+      display: flex;
+    }
+
+    /* Animation du joueur qui suit la souris */
+    .player-ghost {
+      position: fixed;
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: 3px solid rgba(255, 215, 0, 0.9);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 10000;
+      opacity: 0.9;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.6);
+      animation: ghost-pulse 0.8s infinite;
+      display: none;
+      padding: 6px;
+      box-sizing: border-box;
+    }
+
+    .player-ghost img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      object-position: center;
+    }
+
+    .player-ghost-info {
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    @keyframes ghost-pulse {
+      0% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.1); }
+      100% { transform: translate(-50%, -50%) scale(1); }
+    }
+
+    /* Highlight des slots disponibles pendant le drag */
+    .slot-highlight {
+      background: rgba(255, 215, 0, 0.3) !important;
+      border-color: #FFD700 !important;
+      animation: slot-glow 1s infinite;
+    }
+
+    @keyframes slot-glow {
+      0% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+      50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.8); }
+      100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+    }
+
+    /* Pitch styling */
+    .pitch {
+      position: relative;
+      min-height: 700px;
+      padding: 40px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+      box-shadow: inset 0 0 50px rgba(0,0,0,0.8), 0 8px 32px rgba(0,0,0,0.4);
+      overflow: hidden;
+      border: 2px solid #333;
+    }
+
+    /* Animation du joueur qui suit la souris */
+    .player-ghost {
+      position: fixed;
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: 3px solid rgba(255, 215, 0, 0.9);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 10000;
+      opacity: 0.9;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.6);
+      animation: ghost-pulse 0.8s infinite;
+      display: none;
+    }
+
+    .player-ghost img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      object-position: center;
+    }
+
+    .player-ghost-info {
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    @keyframes ghost-pulse {
+      0% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.1); }
+      100% { transform: translate(-50%, -50%) scale(1); }
+    }
+
+    /* Highlight des slots disponibles pendant le drag */
+    .slot-highlight {
+      background: rgba(255, 215, 0, 0.3) !important;
+      border-color: #FFD700 !important;
+      animation: slot-glow 1s infinite;
+    }
+
+    @keyframes slot-glow {
+      0% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+      50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.8); }
+      100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+    }
+
+    .pitch-lines {
+      position: absolute;
+      inset: 20px;
+      pointer-events: none;
+      border: 2px solid rgba(255,255,255,0.6);
+      border-radius: 8px;
+    }
+
+    .pitch-circle-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 140px;
+      height: 140px;
+      border: 2px solid rgba(255,255,255,0.6);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .pitch-line-center {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 2px;
+      background: rgba(255,255,255,0.6);
+      transform: translateY(-50%);
+    }
+
+    .pitch-box-top {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 240px;
+      height: 80px;
+      border: 2px solid rgba(255,255,255,0.6);
+      border-top: none;
+    }
+
+    .pitch-box-bottom {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 240px;
+      height: 80px;
+      border: 2px solid rgba(255,255,255,0.6);
+      border-bottom: none;
+    }
+
+    .pitch-goal-top {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 20px;
+      border: 2px solid rgba(255,255,255,0.6);
+      border-top: none;
+    }
+
+    .pitch-goal-bottom {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 20px;
+      border: 2px solid rgba(255,255,255,0.6);
+      border-bottom: none;
+    }
+
+    .pitch-spot-center,
+    .pitch-spot-top,
+    .pitch-spot-bottom {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: rgba(255,255,255,0.9);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .pitch-spot-center { top: 50%; left: 50%; }
+    .pitch-spot-top { top: 22%; left: 50%; }
+    .pitch-spot-bottom { bottom: 22%; left: 50%; }
+
+    .pitch-box-top,
+    .pitch-box-bottom {
+      position: absolute;
+      left: 50%;
+      width: 65%;
+      height: 120px;
+      border: 1px solid rgba(255,255,255,0.4);
+      border-radius: 4px;
+      transform: translateX(-50%);
+    }
+
+    .pitch-box-top { top: 0; }
+    .pitch-box-bottom { bottom: 0; }
+
+    .pitch-goal-top,
+    .pitch-goal-bottom {
+      position: absolute;
+      left: 50%;
+      width: 28%;
+      height: 45px;
+      border: 1px solid rgba(255,255,255,0.4);
+      border-radius: 3px;
+      transform: translateX(-50%);
+    }
+
+    .pitch-goal-top { top: 0; }
+    .pitch-goal-bottom { bottom: 0; }
+
+    .pitch-arc-top,
+    .pitch-arc-bottom {
+      position: absolute;
+      left: 50%;
+      width: 160px;
+      height: 80px;
+      border: 2px solid rgba(255,255,255,0.8);
+      border-radius: 160px 160px 0 0;
+      border-bottom: none;
+      transform: translateX(-50%);
+    }
+
+    .pitch-arc-top { top: 150px; }
+    .pitch-arc-bottom {
+      bottom: 150px;
+      transform: translateX(-50%) rotate(180deg);
+    }
+
+    .available-player-item {
+      padding: 1rem;
+      background: white;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 2px solid #e0e0e0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .available-player-item:hover {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+      border-color: #667eea;
+    }
+
+    .available-player-item.assigned {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: #f8f9fa;
+      border-color: #d0d0d0;
+    }
+  </style>
+</head>
+<body>
+  <!-- Menu latéral -->
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <h2>🎮 FM2014</h2>
+    </div>
+    
+    <div class="sidebar-menu">
+      <div class="menu-item active" data-section="generator">
+        <span class="menu-item-icon">📄</span>
+        <span>Générateur XML</span>
+      </div>
+      <div class="menu-item" data-section="fantasy">
+        <span class="menu-item-icon">⚽</span>
+        <span>Fantasy</span>
+      </div>
+      <div class="menu-item" data-section="database">
+        <span class="menu-item-icon">💾</span>
+        <span>Base de données</span>
+      </div>
+      <div class="menu-item" data-section="settings">
+        <span class="menu-item-icon">⚙️</span>
+        <span>Paramètres</span>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="user-info-sidebar">
+        <span>👤</span>
+        <span id="sidebar-username">Utilisateur</span>
+      </div>
+      <button class="btn-logout" onclick="logout()">🚪 Déconnexion</button>
+    </div>
+  </nav>
+
+  <!-- Contenu principal -->
+  <div class="main-content">
+    <!-- Section Générateur XML -->
+    <div class="content-section active" id="section-generator">
+      <header class="hero">
+        <div class="hero__overlay"></div>
+        <div class="hero__content">
+          <img class="logo" src="https://upload.wikimedia.org/wikipedia/en/9/95/Football_Manager_2014_Logo.png" alt="Football Manager 2014" />
+          <h1>FM2014 XML Generator</h1>
+          <p>Importe un XML joueur, visualise les attributs, génère un XML compatible FM2014 (32 records).</p>
+          <div class="actions">
+            <label class="btn" for="file-input">📂 Importer un XML</label>
+            <input id="file-input" type="file" accept=".xml" hidden />
+            <button id="download-btn" class="btn btn-secondary" disabled>💾 Télécharger le XML généré</button>
+          </div>
+          <div id="dropzone" class="dropzone">Glisse ton fichier XML ici</div>
+        </div>
+      </header>
+
+      <main class="grid">
+        <section class="card">
+          <h2>Attributs détectés</h2>
+          <div id="attributes" class="attributes"></div>
+          
+          <!-- Affichage du drapeau du pays -->
+          <div id="flag-section" style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #e0e0e0; display: none;">
+            <h3 style="margin: 0 0 1rem 0; color: #1e3c72;">🏴 Nation</h3>
+            <div id="flag-display" style="text-align: center; background: #f5f5f5; border-radius: 8px; padding: 1.5rem;">
+              <p style="color: #999; margin: 0;">En attente...</p>
+            </div>
+          </div>
+          
+          <!-- Prévisualisation de l'image du joueur -->
+          <div id="image-preview-section" style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #e0e0e0; display: none;">
+            <h3 style="margin: 0 0 1rem 0; color: #1e3c72;">🖼️ Prévisualisation Image</h3>
+            <div id="image-preview" style="text-align: center; min-height: 100px; background: #f5f5f5; border-radius: 8px; padding: 1rem;">
+              <p style="color: #999; margin: 0;">Importez un fichier XML pour voir l'image du joueur</p>
+            </div>
+          </div>
+        </section>
+        <section class="card">
+          <h2>Prévisualisation XML généré</h2>
+          <textarea id="output" class="output" readonly></textarea>
+        </section>
+      </main>
+
+      <footer class="footer">FM2014 XML Generator — Web Edition</footer>
+    </div>
+
+    <!-- Section Fantasy -->
+    <div class="content-section" id="section-fantasy">
+      <header class="hero" style="padding: 2rem 0;">
+        <div class="hero__overlay"></div>
+        <div class="hero__content">
+          <h1>⚽ Fantasy Team Builder</h1>
+          <p>Composez votre équipe avec les joueurs de votre base de données</p>
+        </div>
+      </header>
+      
+      <main style="padding: 2rem; display: flex; gap: 2rem; flex: 1;">
+        <!-- Terrain de football -->
+        <div style="flex: 2; display: flex; flex-direction: column;">
+          <div class="pitch">
+            <div class="pitch-lines">
+              <div class="pitch-line-center"></div>
+              <div class="pitch-circle-center"></div>
+              <div class="pitch-box-top"></div>
+              <div class="pitch-box-bottom"></div>
+              <div class="pitch-goal-top"></div>
+              <div class="pitch-goal-bottom"></div>
+              <!-- Coins du terrain -->
+              <div style="position: absolute; top: 10px; left: 10px; width: 20px; height: 20px; border-right: 2px solid rgba(255,255,255,0.6); border-bottom: 2px solid rgba(255,255,255,0.6); border-radius: 0 0 20px 0;"></div>
+              <div style="position: absolute; top: 10px; right: 10px; width: 20px; height: 20px; border-left: 2px solid rgba(255,255,255,0.6); border-bottom: 2px solid rgba(255,255,255,0.6); border-radius: 0 0 0 20px;"></div>
+              <div style="position: absolute; bottom: 10px; left: 10px; width: 20px; height: 20px; border-right: 2px solid rgba(255,255,255,0.6); border-top: 2px solid rgba(255,255,255,0.6); border-radius: 0 20px 0 0;"></div>
+              <div style="position: absolute; bottom: 10px; right: 10px; width: 20px; height: 20px; border-left: 2px solid rgba(255,255,255,0.6); border-top: 2px solid rgba(255,255,255,0.6); border-radius: 20px 0 0 0;"></div>
+            </div>
+            
+            <!-- Positions des joueurs -->
+            <div id="field-positions" style="position: relative; height: 100%; display: flex; flex-direction: column; justify-content: space-between; padding: 20px 40px 40px 40px; align-items: center;">
+              <!-- Les positions seront générées par JavaScript -->
+            </div>
+          </div>
+
+          <!-- Formation & Actions -->
+          <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+            <!-- Formation Selector -->
+            <div style="background: rgba(0,0,0,0.8); border-radius: 12px; padding: 1rem; border: 2px solid #00ff88;">
+              <div style="color: #00ff88; font-weight: bold; margin-bottom: 0.5rem; text-align: center;">FORMATION</div>
+              <select id="formation-select" style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 2px solid #00ff88; background: #1a1a1a; color: #00ff88; font-weight: 600; cursor: pointer; text-align: center;" onchange="changeFormation()">
+                <option value="4-4-2">4-4-2</option>
+                <option value="4-3-3">4-3-3</option>
+                <option value="3-5-2">3-5-2</option>
+                <option value="4-2-3-1">4-2-3-1</option>
+              </select>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 1rem;">
+              <button class="btn" onclick="saveTeam()" style="flex: 1;">💾 Sauvegarder</button>
+              <button class="btn btn-secondary" onclick="clearTeam()" style="flex: 1;">🗑️ Effacer</button>
+              <button class="btn" onclick="exportTeam()" style="flex: 1;">📥 Exporter</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Liste des joueurs disponibles -->
+        <div style="flex: 1; background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-height: 700px; display: flex; flex-direction: column; gap: 0.75rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
+            <h3 style="margin: 0; color: #1e3c72;">Joueurs disponibles</h3>
+            <input id="player-search" type="text" placeholder="Rechercher..." oninput="setPlayerSearch(this.value)" 
+              style="flex: 1; padding: 0.5rem 0.75rem; border-radius: 10px; border: 1px solid #d0d7de; font-size: 0.95rem;" />
+          </div>
+          <div id="available-players" style="display: flex; flex-direction: column; gap: 0.75rem; overflow-y: auto;">
+            <!-- Les joueurs seront chargés ici -->
+          </div>
+        </div>
+      </main>
+      
+      <footer class="footer">FM2014 XML Generator — Web Edition</footer>
+    </div>
+
+    <!-- Section Base de données -->
+    <div class="content-section" id="section-database">
+      <header class="hero">
+        <div class="hero__overlay"></div>
+        <div class="hero__content">
+          <h1>💾 Base de données</h1>
+          <p>Gérez vos profils de joueurs sauvegardés</p>
+        </div>
+      </header>
+      
+      <main class="grid">
+        <section class="card" style="grid-column: 1 / -1;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2>Profils enregistrés (<span id="player-count">0</span>)</h2>
+            <button class="btn btn-secondary" onclick="clearDatabase()" style="padding: 0.5rem 1rem;">
+              🗑️ Tout supprimer
+            </button>
+          </div>
+          
+          <div id="players-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;">
+            <!-- Les joueurs seront chargés ici -->
+          </div>
+        </section>
+      </main>
+      
+      <footer class="footer">FM2014 XML Generator — Web Edition</footer>
+    </div>
+
+    <!-- Section Paramètres -->
+    <div class="content-section" id="section-settings">
+      <header class="hero">
+        <div class="hero__overlay"></div>
+        <div class="hero__content">
+          <h1>⚙️ Paramètres</h1>
+          <p>Configurez votre expérience</p>
+        </div>
+      </header>
+      
+      <main class="grid">
+        <section class="card" style="grid-column: 1 / -1;">
+          <h2>Paramètres de l'application</h2>
+          <div style="padding: 3rem; text-align: center; color: #999;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">🛠️</div>
+            <h3>Fonctionnalité à venir</h3>
+            <p>Les paramètres seront bientôt disponibles</p>
+          </div>
+        </section>
+      </main>
+      
+      <footer class="footer">FM2014 XML Generator — Web Edition</footer>
+    </div>
+  </div>
+
+  <!-- Element fantôme pour l'animation de suivi de souris -->
+  <div id="player-ghost" class="player-ghost">
+    <img id="player-ghost-img" src="" alt="">
+    <div id="player-ghost-info" class="player-ghost-info"></div>
+  </div>
+
+  <!-- Element fantôme pour l'animation de suivi de souris -->
+  <div id="player-ghost" class="player-ghost">
+    <img id="player-ghost-img" src="" alt="" style="display: none;">
+    <div id="player-ghost-info" class="player-ghost-info"></div>
+  </div>
+
+  <!-- Modal pour les détails du joueur -->
+  <div class="modal" id="player-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button class="modal-close" onclick="closePlayerModal()">×</button>
+        <h2 id="modal-player-name" style="margin: 0 0 0.5rem 0;">Nom du joueur</h2>
+        <p id="modal-player-info" style="margin: 0; opacity: 0.9;">Informations générales</p>
+      </div>
+      <div class="modal-body">
+        <h3 style="margin: 0 0 1rem 0; color: #1e3c72;">📊 Statistiques complètes</h3>
+        <div id="modal-stats" class="stats-grid">
+          <!-- Les stats seront chargées ici -->
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button onclick="downloadCurrentPlayerXml()" class="btn" style="flex: 1;">
+          💾 Télécharger le XML
+        </button>
+        <button onclick="closePlayerModal()" class="btn btn-secondary" style="flex: 1;">
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    // DEBUG: Tester le chargement du CSV
+    console.log('🔧 DEBUG: Vérification du CSV...');
+    setTimeout(() => {
+      console.log('📊 countryMap actuel:', countryMap);
+      console.log('🇵🇹 Recherche NationID 788:', getCountryByNationId('788'));
+    }, 500);
+
+    // Gestion du menu latéral
+    document.addEventListener('DOMContentLoaded', () => {
+      // Afficher le nom d'utilisateur dans la sidebar
+      const currentUser = localStorage.getItem('fm2014_current_user');
+      if (currentUser) {
+        try {
+          const user = JSON.parse(currentUser);
+          document.getElementById('sidebar-username').textContent = user.name || user.email || 'Utilisateur';
+        } catch (e) {
+          console.error('Erreur parsing user:', e);
+        }
+      }
+
+      // Gestion des clics sur les items du menu
+      const menuItems = document.querySelectorAll('.menu-item');
+      const sections = document.querySelectorAll('.content-section');
+
+      menuItems.forEach(item => {
+        item.addEventListener('click', () => {
+          const targetSection = item.getAttribute('data-section');
+          
+          // Retirer la classe active de tous les items
+          menuItems.forEach(mi => mi.classList.remove('active'));
+          
+          // Ajouter la classe active à l'item cliqué
+          item.classList.add('active');
+          
+          // Masquer toutes les sections
+          sections.forEach(section => section.classList.remove('active'));
+          
+          // Afficher la section ciblée
+          const sectionToShow = document.getElementById(`section-${targetSection}`);
+          if (sectionToShow) {
+            sectionToShow.classList.add('active');
+            
+            // Si on ouvre la base de données, charger les joueurs
+            if (targetSection === 'database') {
+              loadPlayersDatabase();
+            }
+            
+            // Si on ouvre Fantasy, initialiser le terrain
+            if (targetSection === 'fantasy') {
+              initFantasyMode();
+            }
+          }
+        });
+      });
+      
+      // Charger la base de données au démarrage si on est dessus
+      loadPlayersDatabase();
+    });
+
+    // Fonction de déconnexion
+    async function logout() {
+      try {
+        await fetch('/api/logout', { method: 'POST' });
+      } catch (e) {
+        console.error('Logout error:', e);
+      }
+      localStorage.removeItem('fm2014_current_user');
+      localStorage.removeItem('fm2014_remember');
+      window.location.href = 'auth.html';
+    }
+
+    // Charger et afficher les joueurs de la base de données
+    function loadPlayersDatabase() {
+      const saved = localStorage.getItem('fm2014_players');
+      const players = saved ? JSON.parse(saved) : [];
+      
+      const playersList = document.getElementById('players-list');
+      const playerCount = document.getElementById('player-count');
+      
+      if (!playersList || !playerCount) return;
+      
+      playerCount.textContent = players.length;
+      
+      if (players.length === 0) {
+        playersList.innerHTML = `
+          <div style="grid-column: 1 / -1; padding: 3rem; text-align: center; color: #999;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">📭</div>
+            <h3>Aucun joueur enregistré</h3>
+            <p>Importez un fichier XML dans le générateur pour commencer</p>
+          </div>
+        `;
+        return;
+      }
+      
+      playersList.innerHTML = players.map((player, index) => `
+        <div 
+          style="border: 2px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; background: white; cursor: pointer; transition: all 0.2s;"
+          onmouseover="this.style.borderColor='#667eea'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.2)';"
+          onmouseout="this.style.borderColor='#e0e0e0'; this.style.transform='translateY(0)'; this.style.boxShadow='none';"
+          onclick="openPlayerModal(${index})">
+          ${player.imageUrl ? `
+            <div style="text-align: center; margin-bottom: 1rem;">
+              <img 
+                src="${player.imageUrl}" 
+                alt="${player.name}" 
+                style="width: 120px; height: 120px; object-fit: cover; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"
+                onerror="this.style.display='none'"
+              />
+            </div>
+          ` : ''}
+          <h3 style="margin: 0 0 1rem 0; color: #1e3c72; font-size: 1.2rem;">
+            ${player.name}
+            <span style="float: right; font-size: 0.8rem; background: #667eea; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">
+              CA ${player.ca}
+            </span>
+          </h3>
+          <div style="display: grid; gap: 0.5rem; font-size: 0.9rem; color: #666; margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span><strong>Nation:</strong></span>
+              <span>${(() => {
+                const country = getCountryByNationId(player.nation);
+                if (country) {
+                  return `<img 
+                    src="https://pub-775c150b8211432db9dbf4f59277c50f.r2.dev/drapeaux/${country}.png" 
+                    alt="${country}" 
+                    style="height: 28px; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);"
+                    onerror="this.alt='${player.nation}'"
+                  />`;
+                }
+                return player.nation;
+              })()}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span><strong>Date de naissance:</strong></span>
+              <span>${player.birthDate}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span><strong>PA:</strong></span>
+              <span>${player.pa}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span><strong>Taille / Poids:</strong></span>
+              <span>${player.height}cm / ${player.weight}kg</span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem;" onclick="event.stopPropagation();">
+            <button 
+              onclick="downloadPlayerXml(${index})" 
+              class="btn" 
+              style="flex: 1; padding: 0.75rem; font-size: 0.9rem;">
+              💾 XML
+            </button>
+            <button 
+              onclick="deletePlayer(${index})" 
+              class="btn-secondary" 
+              style="padding: 0.75rem; background: #f5576c; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+              🗑️
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function downloadPlayerXml(index) {
+      const saved = localStorage.getItem('fm2014_players');
+      const players = saved ? JSON.parse(saved) : [];
+      
+      if (players[index]) {
+        const player = players[index];
+        const blob = new Blob([player.xml], { type: 'application/xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${player.name}_FM2014.xml`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    function deletePlayer(index) {
+      if (!confirm('Êtes-vous sûr de vouloir supprimer ce joueur ?')) return;
+      
+      const saved = localStorage.getItem('fm2014_players');
+      const players = saved ? JSON.parse(saved) : [];
+      
+      players.splice(index, 1);
+      localStorage.setItem('fm2014_players', JSON.stringify(players));
+      loadPlayersDatabase();
+    }
+
+    function clearDatabase() {
+      if (!confirm('Êtes-vous sûr de vouloir supprimer TOUS les joueurs ?')) return;
+      
+      localStorage.removeItem('fm2014_players');
+      loadPlayersDatabase();
+    }
+
+    // Variables globales pour la modale
+    let currentPlayerIndex = -1;
+
+    function openPlayerModal(index) {
+      const saved = localStorage.getItem('fm2014_players');
+      const players = saved ? JSON.parse(saved) : [];
+      
+      if (!players[index]) return;
+      
+      currentPlayerIndex = index;
+      const player = players[index];
+      const data = player.data;
+      
+      // Remplir le header
+      document.getElementById('modal-player-name').textContent = player.name;
+      
+      // Afficher la nation avec drapeau si disponible
+      const country = getCountryByNationId(player.nation);
+      const nationDisplay = country ? 
+        `Nation: <img src="https://pub-775c150b8211432db9dbf4f59277c50f.r2.dev/drapeaux/${country}.png" alt="${country}" style="height: 20px; border-radius: 3px; vertical-align: middle;" onerror="this.outerHTML='${player.nation}'"> ${country}` :
+        `Nation: ${player.nation}`;
+      
+      document.getElementById('modal-player-info').innerHTML = 
+        `${nationDisplay} • CA: ${player.ca} • PA: ${player.pa}`;
+      
+      // Créer la grille de stats complètes
+      const statsHtml = Object.entries(data)
+        .filter(([key, value]) => key !== 'name') // Exclure le nom qui est déjà dans le header
+        .map(([key, value]) => {
+          // Formater le label
+          const label = key
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, l => l.toUpperCase());
+          
+          return `
+            <div class="stat-item">
+              <span class="stat-label">${label}</span>
+              <span class="stat-value">${value || 'N/A'}</span>
+            </div>
+          `;
+        })
+        .join('');
+      
+      document.getElementById('modal-stats').innerHTML = statsHtml;
+      
+      // Afficher la modale
+      document.getElementById('player-modal').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closePlayerModal() {
+      document.getElementById('player-modal').classList.remove('active');
+      document.body.style.overflow = '';
+      currentPlayerIndex = -1;
+    }
+
+    function downloadCurrentPlayerXml() {
+      if (currentPlayerIndex >= 0) {
+        downloadPlayerXml(currentPlayerIndex);
+      }
+    }
+
+    // Fermer la modale en cliquant à l'extérieur
+    document.getElementById('player-modal')?.addEventListener('click', (e) => {
+      if (e.target.id === 'player-modal') {
+        closePlayerModal();
+      }
+    });
+
+    // Fermer avec la touche Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closePlayerModal();
+      }
+    });
+
+    // ==================== MODE FANTASY ====================
+    
+    const formations = {
+      '4-4-2': [
+        { row: 'GK', count: 1 },
+        { row: 'DEF', count: 4 },
+        { row: 'MID', count: 4 },
+        { row: 'ATT', count: 2 }
+      ],
+      '4-3-3': [
+        { row: 'GK', count: 1 },
+        { row: 'DEF', count: 4 },
+        { row: 'MID', count: 3 },
+        { row: 'ATT', count: 3 }
+      ],
+      '3-5-2': [
+        { row: 'GK', count: 1 },
+        { row: 'DEF', count: 3 },
+        { row: 'MID', count: 5 },
+        { row: 'ATT', count: 2 }
+      ],
+      '4-2-3-1': [
+        { row: 'GK', count: 1 },
+        { row: 'DEF', count: 4 },
+        { row: 'MID', count: 5 },
+        { row: 'ATT', count: 1 }
+      ]
+    };
+
+    let currentTeam = {};
+    let selectedSlot = null;
+    let playerSearchTerm = '';
+    let draggedPlayerIndex = null;
+    let playerGhost = null;
+    let isMouseTracking = false;
+
+    function initFantasyMode() {
+      loadAvailablePlayers();
+      changeFormation();
+      loadSavedTeam();
+      
+      // Initialiser le suivi de souris
+      playerGhost = document.getElementById('player-ghost');
+      
+      // Écouter les mouvements de souris
+      document.addEventListener('mousemove', handleMouseMove);
+      
+      // Écouter les clics pour arrêter le drag
+      document.addEventListener('click', handleGlobalClick);
+    }
+
+    function changeFormation() {
+      const formationSelect = document.getElementById('formation-select');
+      const formation = formationSelect?.value || '4-4-2';
+      const fieldPositions = document.getElementById('field-positions');
+      
+      if (!fieldPositions) return;
+      
+      const formationData = formations[formation];
+      
+      fieldPositions.innerHTML = formationData.map((line, lineIndex) => {
+        const positions = [];
+        for (let i = 0; i < line.count; i++) {
+          const slotId = `${line.row}-${i}`;
+          const player = currentTeam[slotId];
+          
+          positions.push(`
+              <div class="player-slot ${player ? 'filled' : ''}" 
+                id="slot-${slotId}"
+                onclick="selectSlot('${slotId}')"
+                ondragover="handleSlotDragOver(event)"
+                ondrop="handleSlotDrop(event, '${slotId}')">
+              ${player ? `
+                <div class="player-slot-remove" onclick="event.stopPropagation(); removePlayer('${slotId}')">×</div>
+                <div class="player-slot-content">
+                  ${player.imageUrl ? `
+                    <img 
+                      src="${player.imageUrl}" 
+                      alt="${player.name}" 
+                      class="player-slot-image"
+                      onerror="this.style.display='none'"
+                    />
+                  ` : ''}
+                  <div class="player-slot-info">
+                    <div class="player-slot-name">${player.name.split(' ').slice(-1)[0]}</div>
+                  </div>
+                </div>
+              ` : `
+                <div class="player-slot-empty">${line.row}</div>
+              `}
+            </div>
+          `);
+        }
+        
+        return `<div class="field-row">${positions.join('')}</div>`;
+      }).join('');
+    }
+
+    function setPlayerSearch(value) {
+      playerSearchTerm = (value || '').toLowerCase();
+      loadAvailablePlayers();
+    }
+
+    function loadAvailablePlayers() {
+      const saved = localStorage.getItem('fm2014_players');
+      const players = saved ? JSON.parse(saved) : [];
+      const availablePlayersDiv = document.getElementById('available-players');
+      
+      if (!availablePlayersDiv) return;
+      
+      const filtered = players.filter(p => {
+        if (!playerSearchTerm) return true;
+        return (p.name || '').toLowerCase().includes(playerSearchTerm);
+      });
+      
+      if (filtered.length === 0) {
+        availablePlayersDiv.innerHTML = `
+          <div style="text-align: center; color: #999; padding: 2rem;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔍</div>
+            <p>Aucun joueur trouvé</p>
+            <p style="font-size: 0.9rem;">Essayez un autre nom</p>
+          </div>
+        `;
+        return;
+      }
+      
+      availablePlayersDiv.innerHTML = filtered.map((player, index) => {
+        // trouver l'index réel dans players pour l'assignation
+        const realIndex = players.findIndex(p => p.id === player.id);
+        const isAssigned = Object.values(currentTeam).some(p => p && p.id === player.id);
+        const dragAttrs = isAssigned ? '' : `draggable="true" ondragstart="handlePlayerDragStart(event, ${realIndex})"`;
+        const clickHandler = isAssigned ? '' : `onclick="startPlayerDrag(${realIndex})"`;
+        return `
+          <div class="available-player-item ${isAssigned ? 'assigned' : ''}" 
+               ${clickHandler}
+               ${dragAttrs}>
+            ${player.imageUrl ? `
+              <div style="flex-shrink: 0;">
+                <img 
+                  src="${player.imageUrl}" 
+                  alt="${player.name}" 
+                  style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 2px solid rgba(255,255,255,0.2);"
+                  onerror="this.style.display='none'"
+                />
+              </div>
+            ` : `
+              <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #ddd 0%, #bbb 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <span style="font-size: 1.5rem;">👤</span>
+              </div>
+            `}
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-weight: 700; margin-bottom: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #2d3748;">${player.name}</div>
+              <div style="font-size: 0.85rem; color: #4a5568; font-weight: 500;">
+                CA ${player.ca} • PA ${player.pa}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectSlot(slotId) {
+      // Retirer la sélection précédente
+      document.querySelectorAll('.player-slot').forEach(slot => {
+        slot.style.boxShadow = '';
+      });
+      
+      // Sélectionner le nouveau slot
+      const slotElement = document.getElementById(`slot-${slotId}`);
+      if (slotElement && !currentTeam[slotId]) {
+        slotElement.style.boxShadow = '0 0 0 3px yellow';
+        selectedSlot = slotId;
+      }
+    }
+
+    function assignPlayer(playerIndex) {
+      if (!selectedSlot) {
+        alert('⚠️ Sélectionnez d\'abord une position sur le terrain');
+        return;
+      }
+      assignPlayerToSlot(playerIndex, selectedSlot);
+      selectedSlot = null;
+    }
+
+    function assignPlayerToSlot(playerIndex, slotId) {
+      const saved = localStorage.getItem('fm2014_players');
+      const players = saved ? JSON.parse(saved) : [];
+      const player = players[playerIndex];
+      if (!player) return;
+
+      if (Object.values(currentTeam).some(p => p && p.id === player.id)) {
+        alert('⚠️ Ce joueur est déjà sur le terrain');
+        return;
+      }
+
+      currentTeam[slotId] = player;
+      changeFormation();
+      loadAvailablePlayers();
+    }
+
+    function handlePlayerDragStart(event, playerIndex) {
+      event.dataTransfer.setData('text/plain', String(playerIndex));
+      event.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleSlotDragOver(event) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'move';
+    }
+
+    function handleSlotDrop(event, slotId) {
+      event.preventDefault();
+      const playerIndex = Number(event.dataTransfer.getData('text/plain'));
+      if (Number.isNaN(playerIndex)) return;
+      assignPlayerToSlot(playerIndex, slotId);
+    }
+
+    function removePlayer(slotId) {
+      delete currentTeam[slotId];
+      changeFormation();
+      loadAvailablePlayers();
+    }
+
+    function clearTeam() {
+      if (!confirm('Voulez-vous vraiment effacer toute l\'équipe ?')) return;
+      
+      currentTeam = {};
+      selectedSlot = null;
+      changeFormation();
+      loadAvailablePlayers();
+    }
+
+    function saveTeam() {
+      const formationSelect = document.getElementById('formation-select');
+      const formation = formationSelect?.value || '4-4-2';
+      
+      const teamData = {
+        formation,
+        team: currentTeam,
+        savedAt: new Date().toISOString()
+      };
+      
+      localStorage.setItem('fm2014_fantasy_team', JSON.stringify(teamData));
+      
+      // Notification
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4caf50;
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 10000;
+        font-weight: 600;
+      `;
+      notification.textContent = '✅ Équipe sauvegardée !';
+      document.body.appendChild(notification);
+      
+      setTimeout(() => notification.remove(), 2000);
+    }
+
+    function loadSavedTeam() {
+      const saved = localStorage.getItem('fm2014_fantasy_team');
+      if (!saved) return;
+      
+      try {
+        const teamData = JSON.parse(saved);
+        currentTeam = teamData.team || {};
+        
+        const formationSelect = document.getElementById('formation-select');
+        if (formationSelect && teamData.formation) {
+          formationSelect.value = teamData.formation;
+        }
+        
+        changeFormation();
+        loadAvailablePlayers();
+      } catch (e) {
+        console.error('Erreur chargement équipe:', e);
+      }
+    }
+
+    function exportTeam() {
+      const formationSelect = document.getElementById('formation-select');
+      const formation = formationSelect?.value || '4-4-2';
+      
+      const teamList = Object.entries(currentTeam)
+        .map(([position, player]) => `${position}: ${player.name} (CA: ${player.ca})`)
+        .join('\n');
+      
+      const exportText = `🏆 MON ÉQUIPE FM2014 🏆\n\nFormation: ${formation}\n\n${teamList || 'Aucun joueur sélectionné'}`;
+      
+      // Copier dans le presse-papier
+      navigator.clipboard.writeText(exportText).then(() => {
+        alert('✅ Équipe copiée dans le presse-papier !');
+      }).catch(() => {
+        // Fallback: afficher dans une alerte
+        alert(exportText);
+      });
+    }
+    
+    // Fonctions de gestion du suivi de souris
+    function handleMouseMove(event) {
+      if (isMouseTracking && playerGhost) {
+        playerGhost.style.left = event.clientX + 'px';
+        playerGhost.style.top = event.clientY + 'px';
+      }
+    }
+    
+    function handleGlobalClick(event) {
+      // Si on clique sur un slot vide pendant le drag
+      if (isMouseTracking && event.target.classList.contains('player-slot') && !event.target.classList.contains('filled')) {
+        const slotId = event.target.id.replace('slot-', '');
+        if (draggedPlayerIndex !== null) {
+          assignPlayerToSlot(draggedPlayerIndex, slotId);
+          stopPlayerDrag();
+        }
+        event.stopPropagation();
+      }
+      // Si on clique ailleurs, arrêter le drag
+      else if (isMouseTracking && !event.target.closest('.available-player-item')) {
+        stopPlayerDrag();
+      }
+    }
+    
+    function startPlayerDrag(playerIndex) {
+      const saved = localStorage.getItem('fm2014_players');
+      const players = saved ? JSON.parse(saved) : [];
+      const player = players[playerIndex];
+      if (!player) return;
+      
+      draggedPlayerIndex = playerIndex;
+      isMouseTracking = true;
+      
+      // Configurer l'élément fantôme
+      const ghostImg = document.getElementById('player-ghost-img');
+      const ghostInfo = document.getElementById('player-ghost-info');
+      
+      if (player.imageUrl) {
+        ghostImg.src = player.imageUrl;
+        ghostImg.style.display = 'block';
+      } else {
+        ghostImg.style.display = 'none';
+      }
+      
+      ghostInfo.textContent = player.name.split(' ').slice(-1)[0];
+      
+      // Afficher le fantôme
+      playerGhost.style.display = 'block';
+      
+      // Highlight des slots disponibles
+      document.querySelectorAll('.player-slot:not(.filled)').forEach(slot => {
+        slot.classList.add('slot-highlight');
+      });
+      
+      event.stopPropagation();
+    }
+    
+    function stopPlayerDrag() {
+      isMouseTracking = false;
+      draggedPlayerIndex = null;
+      
+      // Cacher le fantôme
+      if (playerGhost) {
+        playerGhost.style.display = 'none';
+      }
+      
+      // Retirer le highlight des slots
+      document.querySelectorAll('.slot-highlight').forEach(slot => {
+        slot.classList.remove('slot-highlight');
+      });
+    }
+  </script>
+</body>
+</html>
