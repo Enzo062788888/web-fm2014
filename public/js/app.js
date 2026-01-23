@@ -245,10 +245,6 @@ function handleFile(file) {
 
 function savePlayerToDatabase(data, xmlContent) {
   try {
-    // Récupérer les profils existants
-    const saved = localStorage.getItem('fm2014_players');
-    const players = saved ? JSON.parse(saved) : [];
-    
     // Récupérer l'UID directement depuis le XML et construire l'URL R2
     const imageUrl = currentPlayerId ? `https://pub-775c150b8211432db9dbf4f59277c50f.r2.dev/Phot/${currentPlayerId}.png` : null;
     
@@ -273,22 +269,45 @@ function savePlayerToDatabase(data, xmlContent) {
       data: data // Sauvegarder toutes les données
     };
     
-    // Vérifier si le joueur existe déjà (par nom)
-    const existingIndex = players.findIndex(p => p.name === player.name);
-    if (existingIndex !== -1) {
-      // Mettre à jour le joueur existant
-      players[existingIndex] = player;
-    } else {
-      // Ajouter le nouveau joueur
-      players.push(player);
-    }
-    
-    // Sauvegarder dans localStorage ET sur le serveur
-    localStorage.setItem('fm2014_players', JSON.stringify(players));
-    savePlayersToServer(); // Synchroniser avec le serveur
-    
-    // Afficher une notification
-    showNotification(` ${player.name} ajouté à la base de données avec image R2`);
+    // Charger les joueurs depuis le serveur
+    fetch('/api/user-data/players')
+      .then(res => res.json())
+      .then(serverData => {
+        const players = serverData.success ? serverData.players : [];
+        
+        // Vérifier si le joueur existe déjà (par nom)
+        const existingIndex = players.findIndex(p => p.name === player.name);
+        if (existingIndex !== -1) {
+          // Mettre à jour le joueur existant
+          players[existingIndex] = player;
+        } else {
+          // Ajouter le nouveau joueur
+          players.push(player);
+        }
+        
+        // Sauvegarder dans localStorage ET sur le serveur
+        localStorage.setItem('fm2014_players', JSON.stringify(players));
+        savePlayersToServer(); // Synchroniser avec le serveur
+        
+        // Afficher une notification
+        showNotification(`🎯 ${player.name} ajouté à la base de données avec image R2`);
+      })
+      .catch(error => {
+        console.error('Erreur chargement serveur:', error);
+        // Fallback: utiliser localStorage si le serveur ne répond pas
+        const saved = localStorage.getItem('fm2014_players');
+        const players = saved ? JSON.parse(saved) : [];
+        
+        const existingIndex = players.findIndex(p => p.name === player.name);
+        if (existingIndex !== -1) {
+          players[existingIndex] = player;
+        } else {
+          players.push(player);
+        }
+        
+        localStorage.setItem('fm2014_players', JSON.stringify(players));
+        showNotification(`🎯 ${player.name} ajouté localement (hors ligne)`);
+      });
   } catch (e) {
     console.error('Erreur sauvegarde:', e);
   }
