@@ -283,8 +283,9 @@ function savePlayerToDatabase(data, xmlContent) {
       players.push(player);
     }
     
-    // Sauvegarder dans localStorage
+    // Sauvegarder dans localStorage ET sur le serveur
     localStorage.setItem('fm2014_players', JSON.stringify(players));
+    savePlayersToServer(); // Synchroniser avec le serveur
     
     // Afficher une notification
     showNotification(` ${player.name} ajouté à la base de données avec image R2`);
@@ -456,7 +457,89 @@ function displayFlagByNationId(nationId, containerElement) {
 // Charger le CSV au démarrage de la page
 document.addEventListener('DOMContentLoaded', () => {
   loadCountriesCsv();
+  // Charger les joueurs de l'utilisateur depuis le serveur
+  loadPlayersFromServer();
 });
+
+// ===== SYNCHRONISATION AVEC LE SERVEUR =====
+
+// Charger les joueurs de l'utilisateur depuis le serveur
+async function loadPlayersFromServer() {
+  try {
+    const response = await fetch('/api/user-data/players');
+    const data = await response.json();
+    
+    if (data.success && data.players && data.players.length > 0) {
+      // Sauvegarder dans localStorage pour la compaté
+      localStorage.setItem('fm2014_players', JSON.stringify(data.players));
+      console.log(`💾 ${data.players.length} joueurs chargés depuis le serveur`);
+      
+      // Rafraîchir l'affichage si on est sur la page base de données
+      const dbSection = document.getElementById('database-section');
+      if (dbSection && !dbSection.classList.contains('hidden')) {
+        loadPlayersDatabase();
+      }
+    } else {
+      console.log('💾 Aucun joueur sauvegardé sur le serveur');
+    }
+  } catch (error) {
+    console.error('❌ Erreur chargement joueurs:', error);
+    // Si non connecté ou erreur, utiliser localStorage local
+  }
+}
+
+// Sauvegarder les joueurs sur le serveur
+async function savePlayersToServer() {
+  try {
+    const saved = localStorage.getItem('fm2014_players');
+    const players = saved ? JSON.parse(saved) : [];
+    
+    const response = await fetch('/api/user-data/players', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ players })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      console.log(`✅ ${players.length} joueurs sauvegardés sur le serveur`);
+      showNotification(`💾 ${players.length} joueurs sauvegardés !`);
+    } else {
+      console.warn('⚠️ Erreur sauvegarde serveur:', data);
+    }
+  } catch (error) {
+    console.error('❌ Erreur sauvegarde serveur:', error);
+    // Si non connecté, garder en localStorage seulement
+  }
+}
+
+// Appeler savePlayersToServer() après chaque modification de joueur
+function savePlayerAndSync(playerData) {
+  // Sauvegarder en localStorage d'abord
+  const saved = localStorage.getItem('fm2014_players');
+  const players = saved ? JSON.parse(saved) : [];
+  players.push(playerData);
+  localStorage.setItem('fm2014_players', JSON.stringify(players));
+  
+  // Puis synchroniser avec le serveur
+  savePlayersToServer();
+}
+
+// Fonction pour supprimer un joueur et synchroniser
+function deletePlayerAndSync(playerId) {
+  const saved = localStorage.getItem('fm2014_players');
+  const players = saved ? JSON.parse(saved) : [];
+  const updated = players.filter(p => p.id !== playerId);
+  localStorage.setItem('fm2014_players', JSON.stringify(updated));
+  
+  // Synchroniser avec le serveur
+  savePlayersToServer();
+}
+
+// ===== FIN SYNCHRONISATION =====
 
 // Fonction pour afficher l'image en prévisualisation
 function showImagePreview(playerId) {
@@ -510,6 +593,7 @@ async function uploadPlayerImage(playerId, playerName, localPlayerId) {
       if (playerIndex !== -1) {
         players[playerIndex].imageUrl = result.imageUrl;
         localStorage.setItem('fm2014_players', JSON.stringify(players));
+        savePlayersToServer(); // Synchroniser avec le serveur
       }
       
       showNotification(` URL image de ${playerName} récupérée !`);
