@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import express from 'express'
 import session from 'express-session'
+import { createClient } from '@libsql/client'
 import { S3Client } from '@aws-sdk/client-s3'
 import nodemailer from 'nodemailer'
 import crypto from 'crypto'
@@ -52,14 +53,75 @@ async function getTransporter() {
   }
 }
 
-// STRUCTURE MULTI-UTILISATEUR
-// Chaque utilisateur a ses propres donnees independantes
+// CONFIGURATION TURSO DATABASE
+let db = null
+
+if (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
+  db = createClient({
+    url: process.env.TURSO_DATABASE_URL,
+    authToken: process.env.TURSO_AUTH_TOKEN
+  })
+  console.log('💾 Turso Database connectée')
+  
+  // Créer les tables si elles n'existent pas
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      name TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+  
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS reset_tokens (
+      token TEXT PRIMARY KEY,
+      email TEXT NOT NULL,
+      expires_at INTEGER NOT NULL
+    )
+  `)
+  
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS user_players (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      player_data TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `)
+  
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS user_teams (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      team_data TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `)
+  
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS user_databases (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      database_data TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `)
+  
+  console.log('✅ Tables créées avec succès')
+} else {
+  console.warn('⚠️ Turso non configuré, utilisation de la mémoire (données perdues au redémarrage)')
+}
+
+// FALLBACK: Structure en mémoire si Turso non configuré
 const users = []  // Utilisateurs avec identifiants
 const resetTokens = {}  // Tokens de reinitialisation de mot de passe
-
-// DONNEES PAR UTILISATEUR
-// Structure: userData[userId] = { players: [], teams: [], databases: [] }
-const userData = {}
+const userData = {}  // Structure: userData[userId] = { players: [], teams: [], databases: [] }
 
 // Authentification par email/password uniquement
 
@@ -86,35 +148,88 @@ function isAuthenticated(req, res, next) {
 }
 
 // API Login (session locale)
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
   const { email, password } = req.body
-  const user = users.find(u => u.email === email && u.password === password)
   
-  if (user) {
-    req.session.user = user
-    res.json({ success: true, user: { email: user.email, name: user.name } })
-  } else {
-    res.status(401).json({ success: false, message: 'Email ou mot de passe incorrect' })
+  try {
+    let user = null
+    
+    if (db) {
+      // Chercher dans Turso
+      const result = await db.execute({
+        sql: 'SELECT * FROM users WHERE email = ? AND password = ?',
+        args: [email, password]
+      })
+      user = result.rows[0] ? {
+        id: result.rows[0].id,
+        email: result.rows[0].email,
+        name: result.rows[0].name
+      } : null
+    } else {
+      // Fallback: chercher en mémoire
+      user = users.find(u => u.email === email && u.password === password)
+    }
+    
+    if (user) {
+      req.session.user = user
+      res.json({ success: true, user: { email: user.email, name: user.name } })
+    } else {
+      res.status(401).json({ success: false, message: 'Email ou mot de passe incorrect' })
+    }
+  } catch (error) {
+    console.error('Erreur login:', error)
+    res.status(500).json({ success: false, message: 'Erreur serveur' })
   }
 })
 
 // API Signup (creation compte local)
-app.post('/api/signup', (req, res) => {
+app.post('/api/signup', async (req, res) => {
   const { email, password, name } = req.body
   
-  const exists = users.find(u => u.email === email)
-  if (exists) {
-    return res.status(400).json({ success: false, message: 'Email deja utilise' })
+  try {
+    let exists = false
+    let newUser = null
+    
+    if (db) {
+      // Vérifier dans Turso
+      const check = await db.execute({
+        sql: 'SELECT id FROM users WHERE email = ?',
+        args: [email]
+      })
+      exists = check.rows.length > 0
+      
+      if (!exists) {
+        // Insérer dans Turso
+        const result = await db.execute({
+          sql: 'INSERT INTO users (email, password, name) VALUES (?, ?, ?) RETURNING *',
+          args: [email, password, name]
+        })
+        newUser = {
+          id: result.rows[0].id,
+          email: result.rows[0].email,
+          name: result.rows[0].name
+        }
+      }
+    } else {
+      // Fallback: mémoire
+      exists = users.find(u => u.email === email)
+      if (!exists) {
+        newUser = { email, password, name, id: Date.now() }
+        users.push(newUser)
+        userData[newUser.id] = { players: [], teams: [], databases: [] }
+      }
+    }
+    
+    if (exists) {
+      return res.status(400).json({ success: false, message: 'Email deja utilise' })
+    }
+    
+    req.session.user = newUser
+    res.json({ success: true, user: { email: newUser.email, name: newUser.name } })
+  } catch (error) {
+    console.error('Erreur signup:', error)
+    res.status(500).json({ success: false, message: 'Erreur serveur' })
   }
-  
-  const newUser = { email, password, name, id: Date.now() }
-  users.push(newUser)
-  
-  // Initialiser les donnees vides pour ce nouvel utilisateur
-  userData[newUser.id] = { players: [], teams: [], databases: [] }
-  
-  req.session.user = newUser
-  res.json({ success: true, user: { email, name } })
 })
 
 // API Logout
@@ -139,10 +254,30 @@ app.get('/api/session', (req, res) => {
 // ============= APIS MULTI-UTILISATEUR =============
 
 // API Sauvegarder les joueurs d'un utilisateur
-app.post('/api/user-data/players', isAuthenticated, (req, res) => {
+app.post('/api/user-data/players', isAuthenticated, async (req, res) => {
   try {
     const { players } = req.body
-    userData[req.userId].players = players
+    
+    if (db) {
+      // Supprimer les anciens joueurs
+      await db.execute({
+        sql: 'DELETE FROM user_players WHERE user_id = ?',
+        args: [req.userId]
+      })
+      
+      // Insérer les nouveaux
+      if (players && players.length > 0) {
+        await db.execute({
+          sql: 'INSERT INTO user_players (user_id, player_data) VALUES (?, ?)',
+          args: [req.userId, JSON.stringify(players)]
+        })
+      }
+    } else {
+      // Fallback: mémoire
+      userData[req.userId] = userData[req.userId] || {}
+      userData[req.userId].players = players
+    }
+    
     res.json({ success: true, message: 'Joueurs sauvegardes' })
   } catch (error) {
     console.error('Erreur sauvegarde joueurs:', error)
@@ -151,9 +286,23 @@ app.post('/api/user-data/players', isAuthenticated, (req, res) => {
 })
 
 // API Recuperer les joueurs d'un utilisateur
-app.get('/api/user-data/players', isAuthenticated, (req, res) => {
+app.get('/api/user-data/players', isAuthenticated, async (req, res) => {
   try {
-    const players = userData[req.userId]?.players || []
+    let players = []
+    
+    if (db) {
+      const result = await db.execute({
+        sql: 'SELECT player_data FROM user_players WHERE user_id = ? ORDER BY id DESC LIMIT 1',
+        args: [req.userId]
+      })
+      if (result.rows[0]) {
+        players = JSON.parse(result.rows[0].player_data)
+      }
+    } else {
+      // Fallback: mémoire
+      players = userData[req.userId]?.players || []
+    }
+    
     res.json({ success: true, players })
   } catch (error) {
     console.error('Erreur recuperation joueurs:', error)
