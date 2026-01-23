@@ -1,19 +1,30 @@
-# FM2014 Web Generator 🎮⚽
+# ⚽ FM2014 Web Generator
 
-Application web moderne pour générer et gérer des profils de joueurs Football Manager 2014.
+Application web moderne pour générer et gérer des profils de joueurs Football Manager 2014 avec système multi-utilisateur.
 
 ## 🚀 Fonctionnalités
 
 - **Générateur XML** : Import/export de profils joueurs FM2014
-- **Base de données** : Sauvegarde et consultation des joueurs
+- **Base de données** : Sauvegarde permanente avec **Turso (SQLite cloud)**
+- **Multi-utilisateur** : Chaque compte a ses propres données isolées
 - **Fantasy Mode** : Créer votre équipe avec terrain interactif (4-4-2, 4-3-3, 3-5-2, 4-2-3-1)
-- **Authentification** : Connexion sécurisée avec Google OAuth
-- **Images automatiques** : Téléchargement automatique depuis sortitoutsi.net vers Cloudflare R2
+- **Authentification** : Connexion sécurisée par email/password
+- **Images automatiques** : Téléchargement depuis Cloudflare R2
+- **Reset password** : Récupération par email
 
 ## 📁 Structure du projet
 
 ```
 web-fm2014/
+├── backup/              # Fichiers de sauvegarde
+├── data/                # Fichiers CSV et données
+│   ├── countries-codes.csv
+│   └── drapeaux.txt
+├── docs/                # Documentation
+│   ├── CONFIGURATION_EMAIL.md
+│   ├── GOOGLE_AUTH_SETUP.md
+│   ├── SAUVEGARDE_JOUEURS.md
+│   └── TURSO_SETUP.md
 ├── public/              # Frontend (fichiers statiques)
 │   ├── index.html       # Page d'accueil
 │   ├── auth.html        # Page de connexion
@@ -26,11 +37,13 @@ web-fm2014/
 ├── scripts/             # Scripts d'automatisation
 │   ├── download-images.js # Téléchargement massif d'images
 │   ├── import-to-db.js    # Import vers base de données
+│   ├── drapeaux.py        # Gestion des drapeaux
+│   ├── remove-emojis.py   # Nettoyage des emojis
 │   └── README.md
+├── src/                 # Sources additionnelles
 ├── server.js            # Backend Node.js/Express
 ├── package.json         # Dépendances
-├── .env                 # Configuration (secrets)
-└── .env.example         # Template de configuration
+└── README.md
 ```
 
 ## 🛠️ Installation
@@ -38,7 +51,7 @@ web-fm2014/
 ### 1. Cloner le projet
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/Enzo062788888/web-fm2014.git
 cd web-fm2014
 ```
 
@@ -53,37 +66,41 @@ npm install
 Créez un fichier `.env` à la racine :
 
 ```env
-# Google OAuth (obligatoire pour l'authentification)
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-
-# Session Secret (générez une clé aléatoire)
+# Serveur
+PORT=3000
 SESSION_SECRET=your_random_secret_key
+BASE_URL=http://localhost:3000
 
-# Cloudflare R2 (optionnel, pour hébergement d'images)
+# Turso Database (recommandé - sauvegarde permanente)
+TURSO_DATABASE_URL=libsql://your-db.turso.io
+TURSO_AUTH_TOKEN=your_turso_token
+
+# Email (optionnel - pour reset password)
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASSWORD=your-app-password
+
+# Cloudflare R2 (optionnel - pour images de joueurs)
 R2_ENDPOINT=https://xxxxx.r2.cloudflarestorage.com
 R2_ACCESS_KEY_ID=your_r2_access_key_id
 R2_SECRET_ACCESS_KEY=your_r2_secret_access_key
 R2_BUCKET_NAME=fm2014-players
-R2_PUBLIC_URL=https://your-r2-public-domain.com
+R2_PUBLIC_URL=https://pub-xxxxx.r2.dev
 ```
 
-### 4. Configurer Google OAuth
+📚 **Voir la documentation** :
+- [Configuration Turso](docs/TURSO_SETUP.md) - Base de données permanente (recommandé)
+- [Configuration Email](docs/CONFIGURATION_EMAIL.md) - Reset password
+- [Sauvegarde des joueurs](docs/SAUVEGARDE_JOUEURS.md) - Système multi-utilisateur
 
-1. Allez sur [Google Cloud Console](https://console.cloud.google.com/)
-2. Créez un nouveau projet
-3. Activez "Google+ API"
-4. Créez des identifiants OAuth 2.0
-5. Ajoutez l'URL de redirection : `http://localhost:8080/api/auth/callback/google`
-6. Copiez le Client ID et Client Secret dans votre `.env`
-
-### 5. Lancer le serveur
+### 4. Lancer le serveur
 
 ```bash
-node server.js
+npm start
 ```
 
-Le serveur démarre sur **http://localhost:8080**
+Le serveur démarre sur **http://localhost:3000**
 
 ## 🎯 Utilisation
 
