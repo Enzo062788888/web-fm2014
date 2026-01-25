@@ -1,0 +1,23 @@
+# Dépendances
+node_modules/
+package-lock.json
+
+# Environnement
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Résultats de scripts
+scripts/download-results.json
+scripts/players-list.json
