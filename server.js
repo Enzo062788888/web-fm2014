@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import express from 'express'
 import session from 'express-session'
-import { createClient } from '@libsql/client'
+import Database from 'better-sqlite3'
 import { S3Client } from '@aws-sdk/client-s3'
 import nodemailer from 'nodemailer'
 import crypto from 'crypto'
@@ -53,75 +53,69 @@ async function getTransporter() {
   }
 }
 
-// CONFIGURATION TURSO DATABASE
-let db = null
+// CONFIGURATION SQLITE LOCAL
+// Utiliser /data pour Fly.io (volume persistant) ou local en dev
+const dbPath = process.env.DATABASE_PATH || './fm2014.db'
+const db = new Database(dbPath)
+console.log(`💾 SQLite connecté (${dbPath})`)
 
-if (process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN) {
-  db = createClient({
-    url: process.env.TURSO_DATABASE_URL,
-    authToken: process.env.TURSO_AUTH_TOKEN
-  })
-  console.log('💾 Turso Database connectée')
-  
-  // Créer les tables si elles n'existent pas
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      name TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `)
-  
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS reset_tokens (
-      token TEXT PRIMARY KEY,
-      email TEXT NOT NULL,
-      expires_at INTEGER NOT NULL
-    )
-  `)
-  
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS user_players (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      player_data TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id)
-    )
-  `)
-  
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS user_teams (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      team_data TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id)
-    )
-  `)
-  
-  await db.execute(`
-    CREATE TABLE IF NOT EXISTS user_databases (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      database_data TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id)
-    )
-  `)
-  
-  console.log('✅ Tables créées avec succès')
-} else {
-  console.warn('⚠️ Turso non configuré, utilisation de la mémoire (données perdues au redémarrage)')
-}
+// Créer les tables si elles n'existent pas
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    name TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
+`)
 
-// FALLBACK: Structure en mémoire si Turso non configuré
-const users = []  // Utilisateurs avec identifiants
-const resetTokens = {}  // Tokens de reinitialisation de mot de passe
-const userData = {}  // Structure: userData[userId] = { players: [], teams: [], databases: [] }
+db.exec(`
+  CREATE TABLE IF NOT EXISTS reset_tokens (
+    token TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  )
+`)
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_players (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    player_data TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  )
+`)
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_teams (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    team_data TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  )
+`)
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_databases (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    database_data TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  )
+`)
+
+console.log('✅ Tables SQLite créées avec succès')
+
+// FALLBACK: Structure en mémoire (non utilisée avec SQLite)
+const users = []
+const resetTokens = {}
+const userData = {}
 
 // Authentification par email/password uniquement
 
@@ -148,30 +142,15 @@ function isAuthenticated(req, res, next) {
 }
 
 // API Login (session locale)
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', (req, res) => {
   const { email, password } = req.body
   
   try {
-    let user = null
-    
-    if (db) {
-      // Chercher dans Turso
-      const result = await db.execute({
-        sql: 'SELECT * FROM users WHERE email = ? AND password = ?',
-        args: [email, password]
-      })
-      user = result.rows[0] ? {
-        id: result.rows[0].id,
-        email: result.rows[0].email,
-        name: result.rows[0].name
-      } : null
-    } else {
-      // Fallback: chercher en mémoire
-      user = users.find(u => u.email === email && u.password === password)
-    }
+    // Chercher dans SQLite
+    const user = db.prepare('SELECT * FROM users WHERE email = ? AND password = ?').get(email, password)
     
     if (user) {
-      req.session.user = user
+      req.session.user = { id: user.id, email: user.email, name: user.name }
       res.json({ success: true, user: { email: user.email, name: user.name } })
     } else {
       res.status(401).json({ success: false, message: 'Email ou mot de passe incorrect' })
@@ -183,45 +162,25 @@ app.post('/api/login', async (req, res) => {
 })
 
 // API Signup (creation compte local)
-app.post('/api/signup', async (req, res) => {
+app.post('/api/signup', (req, res) => {
   const { email, password, name } = req.body
   
   try {
-    let exists = false
-    let newUser = null
-    
-    if (db) {
-      // Vérifier dans Turso
-      const check = await db.execute({
-        sql: 'SELECT id FROM users WHERE email = ?',
-        args: [email]
-      })
-      exists = check.rows.length > 0
-      
-      if (!exists) {
-        // Insérer dans Turso
-        const result = await db.execute({
-          sql: 'INSERT INTO users (email, password, name) VALUES (?, ?, ?) RETURNING *',
-          args: [email, password, name]
-        })
-        newUser = {
-          id: result.rows[0].id,
-          email: result.rows[0].email,
-          name: result.rows[0].name
-        }
-      }
-    } else {
-      // Fallback: mémoire
-      exists = users.find(u => u.email === email)
-      if (!exists) {
-        newUser = { email, password, name, id: Date.now() }
-        users.push(newUser)
-        userData[newUser.id] = { players: [], teams: [], databases: [] }
-      }
-    }
+    // Vérifier si l'email existe déjà
+    const exists = db.prepare('SELECT id FROM users WHERE email = ?').get(email)
     
     if (exists) {
       return res.status(400).json({ success: false, message: 'Email deja utilise' })
+    }
+    
+    // Insérer le nouvel utilisateur
+    const insert = db.prepare('INSERT INTO users (email, password, name) VALUES (?, ?, ?)')
+    const result = insert.run(email, password, name)
+    
+    const newUser = {
+      id: result.lastInsertRowid,
+      email,
+      name
     }
     
     req.session.user = newUser
@@ -254,28 +213,16 @@ app.get('/api/session', (req, res) => {
 // ============= APIS MULTI-UTILISATEUR =============
 
 // API Sauvegarder les joueurs d'un utilisateur
-app.post('/api/user-data/players', isAuthenticated, async (req, res) => {
+app.post('/api/user-data/players', isAuthenticated, (req, res) => {
   try {
     const { players } = req.body
     
-    if (db) {
-      // Supprimer les anciens joueurs
-      await db.execute({
-        sql: 'DELETE FROM user_players WHERE user_id = ?',
-        args: [req.userId]
-      })
-      
-      // Insérer les nouveaux
-      if (players && players.length > 0) {
-        await db.execute({
-          sql: 'INSERT INTO user_players (user_id, player_data) VALUES (?, ?)',
-          args: [req.userId, JSON.stringify(players)]
-        })
-      }
-    } else {
-      // Fallback: mémoire
-      userData[req.userId] = userData[req.userId] || {}
-      userData[req.userId].players = players
+    // Supprimer les anciens joueurs
+    db.prepare('DELETE FROM user_players WHERE user_id = ?').run(req.userId)
+    
+    // Insérer les nouveaux
+    if (players && players.length > 0) {
+      db.prepare('INSERT INTO user_players (user_id, player_data) VALUES (?, ?)').run(req.userId, JSON.stringify(players))
     }
     
     res.json({ success: true, message: 'Joueurs sauvegardes' })
@@ -286,26 +233,18 @@ app.post('/api/user-data/players', isAuthenticated, async (req, res) => {
 })
 
 // API Recuperer les joueurs d'un utilisateur
-app.get('/api/user-data/players', isAuthenticated, async (req, res) => {
+app.get('/api/user-data/players', isAuthenticated, (req, res) => {
   try {
     let players = []
     
-    if (db) {
-      const result = await db.execute({
-        sql: 'SELECT player_data FROM user_players WHERE user_id = ? ORDER BY id DESC LIMIT 1',
-        args: [req.userId]
-      })
-      if (result.rows[0]) {
-        players = JSON.parse(result.rows[0].player_data)
-      }
-    } else {
-      // Fallback: mémoire
-      players = userData[req.userId]?.players || []
+    const result = db.prepare('SELECT player_data FROM user_players WHERE user_id = ? ORDER BY id DESC LIMIT 1').get(req.userId)
+    if (result) {
+      players = JSON.parse(result.player_data)
     }
     
     res.json({ success: true, players })
   } catch (error) {
-    console.error('Erreur recuperation joueurs:', error)
+    console.error('Erreur chargement joueurs:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -385,21 +324,15 @@ app.post('/api/upload-player-image', async (req, res) => {
 app.post('/api/forgot-password', async (req, res) => {
   try {
     const { email } = req.body
-    console.log('\n=== DEMANDE DE REINITIALISATION ===')
-    console.log(`Email demande: ${email}`)
 
     if (!email) {
-      console.log('Erreur: Email manquant')
       return res.status(400).json({ success: false, message: 'Email requis' })
     }
 
     // Verifier si l'utilisateur existe
-    const user = users.find(u => u.email === email)
-    console.log(`Utilisateur trouve: ${user ? 'OUI' : 'NON'}`)
-    console.log(`Utilisateurs enregistres: ${users.map(u => u.email).join(', ')}`)
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email)
     
     if (!user) {
-      console.log('Email non trouve en base, reponse generique envoyee')
       // Securite : ne pas reveler si l'email existe
       return res.json({ success: true, message: 'Si cet email existe, vous recevrez un lien de reinitialisation' })
     }
@@ -408,21 +341,16 @@ app.post('/api/forgot-password', async (req, res) => {
     const token = crypto.randomBytes(32).toString('hex')
     const expiresAt = Date.now() + 3600000 // 1 heure
 
-    resetTokens[token] = { email, expiresAt }
-    console.log(`Token genere: ${token.substring(0, 16)}...`)
+    // Sauvegarder le token dans la base
+    db.prepare('INSERT INTO reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)').run(token, user.id, expiresAt)
 
     // Construire le lien de reinitialisation
     const baseUrl = process.env.BASE_URL || `http://localhost:${PORT}`
     const resetLink = `${baseUrl}/confirm-reset.html?token=${token}`
-    console.log(`Lien de reinitialisation: ${resetLink}`)
 
     // Envoyer l'email
-    console.log('Tentative d\'envoi d\'email...')
-    console.log(`   - De: ${process.env.EMAIL_USER || 'noreply@fm2014.com'}`)
-    console.log(`   - A: ${email}`)
-    
     const transporter = await getTransporter()
-    const info = await transporter.sendMail({
+    await transporter.sendMail({
       from: process.env.EMAIL_USER || 'noreply@fm2014.com',
       to: email,
       subject: 'Reinitialiser votre mot de passe FM2014',
@@ -438,32 +366,21 @@ app.post('/api/forgot-password', async (req, res) => {
       `
     })
     
-    console.log(`Email envoye avec succes!`)
-    console.log(`   - Message ID: ${info.messageId}`)
-    console.log(`   - Accepted: ${info.accepted?.join(', ') || 'N/A'}`)
-    console.log(`   - Rejected: ${info.rejected?.join(', ') || 'Aucun'}`)
-    console.log(`   - Response: ${info.response || 'N/A'}`)
-    
     const previewUrl = nodemailer.getTestMessageUrl(info)
     if (previewUrl) {
-      console.log(`Apercu email (Ethereal): ${previewUrl}`)
+      console.log(`Apercu email: ${previewUrl}`)
     }
-    console.log('=================================\n')
     
     res.json({ success: true, message: 'Email envoye avec succes' })
 
   } catch (error) {
-    console.error('\n=== ERREUR D\'ENVOI ===')
-    console.error(`Message: ${error.message}`)
-    console.error(`Code: ${error.code || 'N/A'}`)
-    console.error(`Stack: ${error.stack}`)
-    console.error('=================================\n')
+    console.error('Erreur envoi email:', error)
     res.status(500).json({ success: false, error: 'Erreur lors de l\'envoi de l\'email' })
   }
 })
 
 // API Reinitialiser le mot de passe
-app.post('/api/reset-password', async (req, res) => {
+app.post('/api/reset-password', (req, res) => {
   try {
     const { token, password } = req.body
 
@@ -476,30 +393,23 @@ app.post('/api/reset-password', async (req, res) => {
     }
 
     // Verifier le token
-    const resetData = resetTokens[token]
+    const resetData = db.prepare('SELECT * FROM reset_tokens WHERE token = ?').get(token)
     if (!resetData) {
       return res.status(400).json({ success: false, message: 'Lien invalide ou expire' })
     }
 
-    if (resetData.expiresAt < Date.now()) {
-      delete resetTokens[token]
+    if (resetData.expires_at < Date.now()) {
+      db.prepare('DELETE FROM reset_tokens WHERE token = ?').run(token)
       return res.status(400).json({ success: false, message: 'Le lien a expire' })
     }
 
-    // Trouver l'utilisateur et mettre a jour le mot de passe
-    const user = users.find(u => u.email === resetData.email)
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'Utilisateur non trouve' })
-    }
-
-    user.password = password
-    delete resetTokens[token]
-
-    console.log(`Mot de passe reinitialise pour ${user.email}`)
-    res.json({ success: true, message: 'Mot de passe reinitialise avec succes' })
-
+    // Mettre a jour le mot de passe
+    db.prepare('UPDATE users SET password = ? WHERE id = ?').run(password, resetData.user_id)
+    db.prepare('DELETE FROM reset_tokens WHERE token = ?').run(token)
+    
+    res.json({ success: true, message: 'Mot de passe change avec succes' })
   } catch (error) {
-    console.error('Erreur reinitialisation:', error.message)
+    console.error('Erreur reset password:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })

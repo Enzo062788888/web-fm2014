@@ -6,6 +6,12 @@ package-lock.json
 .env
 .env.local
 
+# Base de données SQLite locale
+fm2014.db
+fm2014.db-journal
+fm2014.db-shm
+fm2014.db-wal
+
 # Logs
 *.log
 npm-debug.log*
