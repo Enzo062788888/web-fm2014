@@ -430,55 +430,101 @@ app.post('/api/export-fm2014', isAuthenticated, (req, res) => {
     players.forEach((player, index) => {
       const baseId = 2520827801080479000 + index
       const version = 3509
-      const randomId = Math.floor(Math.random() * 999999999)
       
-      // UN SEUL record par joueur avec TOUS les attributs
+      // CHAQUE attribut dans son propre <record> séparé
+      
+      // Wrapper (1094992978)
       xml += '\t\t<record>\n'
       xml += '\t\t\t<integer id="database_table_type" value="1"/>\n'
       xml += '\t\t\t<large id="db_unique_id" value="' + baseId + '"/>\n'
-      
-      // TOUS les attributs dans le même record
-      // Wrapper (1094992978)
-      xml += '\t\t\t<record id="property_1094992978">\n'
-      xml += '\t\t\t\t<unsigned id="property" value="1094992978"/>\n'
-      xml += '\t\t\t\t<string id="new_value" value="' + (player.name || '') + '"/>\n'
-      xml += '\t\t\t</record>\n'
+      xml += '\t\t\t<unsigned id="property" value="1094992978"/>\n'
+      xml += '\t\t\t<string id="new_value" value="' + (player.name || '') + '"/>\n'
+      xml += '\t\t\t<integer id="version" value="' + version + '"/>\n'
+      xml += '\t\t\t<integer id="db_random_id" value="' + Math.floor(Math.random() * 999999999) + '"/>\n'
+      xml += '\t\t\t<integer id="odvl" value="0"/>\n'
+      xml += '\t\t</record>\n'
       
       // Name (1348693601)
-      xml += '\t\t\t<record id="property_1348693601">\n'
-      xml += '\t\t\t\t<unsigned id="property" value="1348693601"/>\n'
-      xml += '\t\t\t\t<string id="new_value" value="' + (player.name || '') + '"/>\n'
-      xml += '\t\t\t</record>\n'
+      xml += '\t\t<record>\n'
+      xml += '\t\t\t<integer id="database_table_type" value="1"/>\n'
+      xml += '\t\t\t<large id="db_unique_id" value="' + baseId + '"/>\n'
+      xml += '\t\t\t<unsigned id="property" value="1348693601"/>\n'
+      xml += '\t\t\t<string id="new_value" value="' + (player.name || '') + '"/>\n'
+      xml += '\t\t\t<integer id="version" value="' + version + '"/>\n'
+      xml += '\t\t\t<integer id="db_random_id" value="' + Math.floor(Math.random() * 999999999) + '"/>\n'
+      xml += '\t\t\t<string id="odvl" value=""/>\n'
+      xml += '\t\t</record>\n'
       
       // Nationality (1349416041)
       if (player.nationality) {
-        xml += '\t\t\t<record id="property_1349416041">\n'
-        xml += '\t\t\t\t<unsigned id="property" value="1349416041"/>\n'
-        xml += '\t\t\t\t<string id="new_value" value="' + player.nationality + '"/>\n'
-        xml += '\t\t\t</record>\n'
+        xml += '\t\t<record>\n'
+        xml += '\t\t\t<integer id="database_table_type" value="1"/>\n'
+        xml += '\t\t\t<large id="db_unique_id" value="' + baseId + '"/>\n'
+        xml += '\t\t\t<unsigned id="property" value="1349416041"/>\n'
+        xml += '\t\t\t<string id="new_value" value="' + player.nationality + '"/>\n'
+        xml += '\t\t\t<integer id="version" value="' + version + '"/>\n'
+        xml += '\t\t\t<integer id="db_random_id" value="' + Math.floor(Math.random() * 999999999) + '"/>\n'
+        xml += '\t\t\t<unsigned id="odvl" value="0"/>\n'
+        xml += '\t\t</record>\n'
       }
       
-      // Birth Date (1348759394)
+      // Birth Date (1348759394) - format date
       if (player.dateOfBirth) {
         const date = new Date(player.dateOfBirth)
-        const day = String(date.getDate()).padStart(2, '0')
-        const month = String(date.getMonth() + 1).padStart(2, '0')
-        const year = date.getFullYear()
-        xml += '\t\t\t<record id="property_1348759394">\n'
-        xml += '\t\t\t\t<unsigned id="property" value="1348759394"/>\n'
-        xml += '\t\t\t\t<string id="new_value" value="' + day + '/' + month + '/' + year + '"/>\n'
-        xml += '\t\t\t</record>\n'
+        xml += '\t\t<record>\n'
+        xml += '\t\t\t<integer id="database_table_type" value="1"/>\n'
+        xml += '\t\t\t<large id="db_unique_id" value="' + baseId + '"/>\n'
+        xml += '\t\t\t<unsigned id="property" value="1348759394"/>\n'
+        xml += '\t\t\t<date id="new_value" day="' + date.getDate() + '" month="' + (date.getMonth() + 1) + '" year="' + date.getFullYear() + '" time="0"/>\n'
+        xml += '\t\t\t<integer id="version" value="' + version + '"/>\n'
+        xml += '\t\t\t<integer id="db_random_id" value="' + Math.floor(Math.random() * 999999999) + '"/>\n'
+        xml += '\t\t\t<date id="odvl" day="1" month="1" year="1900" time="0"/>\n'
+        xml += '\t\t</record>\n'
       }
       
-      // Attributs numériques
-      const numericAttrs = [
-        { prop: 1346589264, key: 'world_reputation' },
-        { prop: 1346916944, key: 'home_reputation' },
-        { prop: 1347899984, key: 'current_reputation' },
-        { prop: 1347436866, key: 'pa' },
-        { prop: 1346584898, key: 'ca' },
-        { prop: 1349018995, key: 'height' },
-        { prop: 1350002035, key: 'weight' },
+      // Position (1349083504)
+      if (player.position !== undefined && player.position !== '') {
+        xml += '\t\t<record>\n'
+        xml += '\t\t\t<integer id="database_table_type" value="1"/>\n'
+        xml += '\t\t\t<large id="db_unique_id" value="' + baseId + '"/>\n'
+        xml += '\t\t\t<unsigned id="property" value="1349083504"/>\n'
+        xml += '\t\t\t<integer id="new_value" value="' + player.position + '"/>\n'
+        xml += '\t\t\t<integer id="version" value="' + version + '"/>\n'
+        xml += '\t\t\t<integer id="db_random_id" value="' + Math.floor(Math.random() * 999999999) + '"/>\n'
+        xml += '\t\t\t<unsigned id="odvl" value="0"/>\n'
+        xml += '\t\t</record>\n'
+      }
+      
+      // Tous les autres attributs numériques avec <integer> ou <string>
+      const integerAttrs = [
+        { prop: 1349085036, key: 'int_caps' },
+        { prop: 1349871969, key: 'u21_caps' },
+        { prop: 1349871975, key: 'u21_goals' },
+        { prop: 1346589264, key: 'ca' },
+        { prop: 1346916944, key: 'corners' },
+        { prop: 1347899984, key: 'crossing' },
+        { prop: 1347436866, key: 'dribbling' },
+        { prop: 1346584898, key: 'finishing' },
+        { prop: 1349018995, key: 'first_touch' },
+        { prop: 1350002035, key: 'freekicks' }
+      ]
+      
+      integerAttrs.forEach(attr => {
+        if (player[attr.key] !== undefined && player[attr.key] !== '') {
+          xml += '\t\t<record>\n'
+          xml += '\t\t\t<integer id="database_table_type" value="1"/>\n'
+          xml += '\t\t\t<large id="db_unique_id" value="' + baseId + '"/>\n'
+          xml += '\t\t\t<unsigned id="property" value="' + attr.prop + '"/>\n'
+          xml += '\t\t\t<integer id="new_value" value="' + player[attr.key] + '"/>\n'
+          xml += '\t\t\t<integer id="version" value="' + version + '"/>\n'
+          xml += '\t\t\t<integer id="db_random_id" value="' + Math.floor(Math.random() * 999999999) + '"/>\n'
+          xml += '\t\t\t<integer id="odvl" value="0"/>\n'
+          xml += '\t\t</record>\n'
+        }
+      })
+      
+      // Attributs avec <string> pour new_value
+      const stringAttrs = [
         { prop: 1346658661, key: 'aerial_ability' },
         { prop: 1346659169, key: 'command_of_area' },
         { prop: 1346659181, key: 'communication' },
@@ -494,23 +540,24 @@ app.post('/api/export-fm2014', isAuthenticated, (req, res) => {
         { prop: 1346659186, key: 'crossing' },
         { prop: 1346659442, key: 'dribbling' },
         { prop: 1346659950, key: 'finishing' },
+        { prop: 1346659956, key: 'agility' },
         { prop: 1346659947, key: 'freekicks' },
         { prop: 1346660452, key: 'heading' }
       ]
       
-      numericAttrs.forEach(attr => {
+      stringAttrs.forEach(attr => {
         if (player[attr.key] !== undefined && player[attr.key] !== '') {
-          xml += '\t\t\t<record id="property_' + attr.prop + '">\n'
-          xml += '\t\t\t\t<unsigned id="property" value="' + attr.prop + '"/>\n'
-          xml += '\t\t\t\t<string id="new_value" value="' + player[attr.key] + '"/>\n'
-          xml += '\t\t\t</record>\n'
+          xml += '\t\t<record>\n'
+          xml += '\t\t\t<integer id="database_table_type" value="1"/>\n'
+          xml += '\t\t\t<large id="db_unique_id" value="' + baseId + '"/>\n'
+          xml += '\t\t\t<unsigned id="property" value="' + attr.prop + '"/>\n'
+          xml += '\t\t\t<string id="new_value" value="' + player[attr.key] + '"/>\n'
+          xml += '\t\t\t<integer id="version" value="' + version + '"/>\n'
+          xml += '\t\t\t<integer id="db_random_id" value="' + Math.floor(Math.random() * 999999999) + '"/>\n'
+          xml += '\t\t\t<integer id="odvl" value="0"/>\n'
+          xml += '\t\t</record>\n'
         }
       })
-      
-      xml += '\t\t\t<integer id="version" value="' + version + '"/>\n'
-      xml += '\t\t\t<integer id="db_random_id" value="' + randomId + '"/>\n'
-      xml += '\t\t\t<integer id="odvl" value="0"/>\n'
-      xml += '\t\t</record>\n'
     })
 
     xml += '\t</list>\n'
