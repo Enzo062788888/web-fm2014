@@ -637,8 +637,14 @@ loadCountriesCsv();
 // ===== EXPORT VERS FM2014 =====
 async function exportToFM2014() {
   try {
-    const saved = localStorage.getItem('fm2014_players');
-    const players = saved ? JSON.parse(saved) : [];
+    // Charger depuis le serveur
+    showNotification('📥 Chargement des joueurs...');
+    const loadResponse = await fetch('/api/user-data/players');
+    if (!loadResponse.ok) {
+      throw new Error('Erreur chargement joueurs');
+    }
+    const loadData = await loadResponse.json();
+    const players = loadData.players || [];
     
     if (players.length === 0) {
       showNotification('⚠️ Aucun joueur à exporter');
