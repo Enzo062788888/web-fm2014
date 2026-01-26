@@ -634,6 +634,49 @@ async function uploadPlayerImage(playerId, playerName, localPlayerId) {
 // Charger le CSV automatiquement au démarrage
 loadCountriesCsv();
 
+// ===== EXPORT VERS FM2014 =====
+async function exportToFM2014() {
+  try {
+    const saved = localStorage.getItem('fm2014_players');
+    const players = saved ? JSON.parse(saved) : [];
+    
+    if (players.length === 0) {
+      showNotification('⚠️ Aucun joueur à exporter');
+      return;
+    }
+
+    showNotification(`📥 Export de ${players.length} joueur(s)...`);
+
+    const response = await fetch('/api/export-fm2014', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ players })
+    });
+
+    if (!response.ok) {
+      throw new Error('Erreur export');
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fm2014-export-${Date.now()}.xml`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+
+    showNotification(`✅ Fichier téléchargé !`);
+  } catch (error) {
+    console.error('Erreur export:', error);
+    showNotification('❌ Erreur lors de l\'export');
+  }
+}
+
 // Rendre les fonctions accessibles globalement
 window.getCountryByNationId = getCountryByNationId;
 window.countryMap = countryMap;
+window.exportToFM2014 = exportToFM2014;

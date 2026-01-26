@@ -414,6 +414,145 @@ app.post('/api/reset-password', (req, res) => {
   }
 })
 
+// API Export vers FM2014 (format XML officiel)
+app.post('/api/export-fm2014', isAuthenticated, (req, res) => {
+  try {
+    const { players } = req.body
+    
+    if (!players || players.length === 0) {
+      return res.status(400).json({ success: false, message: 'Aucun joueur a exporter' })
+    }
+
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n<record>\n'
+    xml += '\t<list id="verf"/>\n'
+    xml += '\t<list id="db_changes">\n'
+
+    players.forEach((player, index) => {
+      const baseId = 2520827801080479000 + index
+      const version = 3509 + index
+      
+      // Wrapper (property 1094992978)
+      xml += '\t\t<record>\n'
+      xml += '\t\t\t<integer id="database_table_type" value="1"/>\n'
+      xml += '\t\t\t<large id="db_unique_id" value="' + baseId + '"/>\n'
+      xml += '\t\t\t<unsigned id="property" value="1094992978"/>\n'
+      xml += '\t\t\t<string id="new_value" value="' + (player.name || '') + '"/>\n'
+      xml += '\t\t\t<integer id="version" value="' + version + '"/>\n'
+      xml += '\t\t\t<integer id="db_random_id" value="' + Math.floor(Math.random() * 999999999) + '"/>\n'
+      xml += '\t\t\t<integer id="odvl" value="0"/>\n'
+      xml += '\t\t</record>\n'
+
+      // Nom (property 1348693601)
+      xml += '\t\t<record>\n'
+      xml += '\t\t\t<integer id="database_table_type" value="1"/>\n'
+      xml += '\t\t\t<large id="db_unique_id" value="' + baseId + '"/>\n'
+      xml += '\t\t\t<unsigned id="property" value="1348693601"/>\n'
+      xml += '\t\t\t<string id="new_value" value="' + (player.name || '') + '"/>\n'
+      xml += '\t\t\t<integer id="version" value="' + version + '"/>\n'
+      xml += '\t\t\t<integer id="db_random_id" value="' + Math.floor(Math.random() * 999999999) + '"/>\n'
+      xml += '\t\t\t<integer id="odvl" value="0"/>\n'
+      xml += '\t\t</record>\n'
+
+      // Nationalité (property 1349416041)
+      if (player.nationality) {
+        xml += '\t\t<record>\n'
+        xml += '\t\t\t<integer id="database_table_type" value="1"/>\n'
+        xml += '\t\t\t<large id="db_unique_id" value="' + baseId + '"/>\n'
+        xml += '\t\t\t<unsigned id="property" value="1349416041"/>\n'
+        xml += '\t\t\t<string id="new_value" value="' + player.nationality + '"/>\n'
+        xml += '\t\t\t<integer id="version" value="' + version + '"/>\n'
+        xml += '\t\t\t<integer id="db_random_id" value="' + Math.floor(Math.random() * 999999999) + '"/>\n'
+        xml += '\t\t\t<integer id="odvl" value="0"/>\n'
+        xml += '\t\t</record>\n'
+      }
+
+      // Date de naissance (property 1348759394) - format DD/MM/YYYY
+      if (player.dateOfBirth) {
+        const date = new Date(player.dateOfBirth)
+        const day = String(date.getDate()).padStart(2, '0')
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const year = date.getFullYear()
+        xml += '\t\t<record>\n'
+        xml += '\t\t\t<integer id="database_table_type" value="1"/>\n'
+        xml += '\t\t\t<large id="db_unique_id" value="' + baseId + '"/>\n'
+        xml += '\t\t\t<unsigned id="property" value="1348759394"/>\n'
+        xml += '\t\t\t<string id="new_value" value="' + day + '/' + month + '/' + year + '"/>\n'
+        xml += '\t\t\t<integer id="version" value="' + version + '"/>\n'
+        xml += '\t\t\t<integer id="db_random_id" value="' + Math.floor(Math.random() * 999999999) + '"/>\n'
+        xml += '\t\t\t<integer id="odvl" value="0"/>\n'
+        xml += '\t\t</record>\n'
+      }
+
+      // Tous les attributs numériques
+      const attributes = [
+        { key: 'position', property: '1349083504' },
+        { key: 'intCaps', property: '1349085036' },
+        { key: 'u21Caps', property: '1349871969' },
+        { key: 'u21Goals', property: '1349871975' },
+        { key: 'currentAbility', property: '1346589264' },
+        { key: 'corners', property: '1346916944' },
+        { key: 'crossing', property: '1347899984' },
+        { key: 'dribbling', property: '1347436866' },
+        { key: 'finishing', property: '1346584898' },
+        { key: 'firstTouch', property: '1349018995' },
+        { key: 'freeKicks', property: '1350002035' },
+        { key: 'aggression', property: '1346658661' },
+        { key: 'anticipation', property: '1346659169' },
+        { key: 'bravery', property: '1346659181' },
+        { key: 'composure', property: '1346659683' },
+        { key: 'concentration', property: '1346660462' },
+        { key: 'decisions', property: '1346661219' },
+        { key: 'determination', property: '1346662255' },
+        { key: 'flair', property: '1346663014' },
+        { key: 'leadership', property: '1346663023' },
+        { key: 'offTheBall', property: '1346663536' },
+        { key: 'positioning', property: '1346663528' },
+        { key: 'teamwork', property: '1346659187' },
+        { key: 'vision', property: '1346659186' },
+        { key: 'workRate', property: '1346659442' },
+        { key: 'acceleration', property: '1346659950' },
+        { key: 'agility', property: '1346659947' },
+        { key: 'balance', property: '1346660452' }
+      ]
+
+      attributes.forEach(attr => {
+        if (player[attr.key] !== undefined && player[attr.key] !== null && player[attr.key] !== '') {
+          xml += '\t\t<record>\n'
+          xml += '\t\t\t<integer id="database_table_type" value="1"/>\n'
+          xml += '\t\t\t<large id="db_unique_id" value="' + baseId + '"/>\n'
+          xml += '\t\t\t<unsigned id="property" value="' + attr.property + '"/>\n'
+          xml += '\t\t\t<string id="new_value" value="' + player[attr.key] + '"/>\n'
+          xml += '\t\t\t<integer id="version" value="' + version + '"/>\n'
+          xml += '\t\t\t<integer id="db_random_id" value="' + Math.floor(Math.random() * 999999999) + '"/>\n'
+          xml += '\t\t\t<integer id="odvl" value="0"/>\n'
+          xml += '\t\t</record>\n'
+        }
+      })
+    })
+
+    xml += '\t</list>\n'
+    xml += '\t<integer id="version" value="3509"/>\n'
+    xml += '\t<integer id="rule_group_version" value="1503"/>\n'
+    xml += '\t<boolean id="beta" value="false"/>\n'
+    xml += '\t<string id="orvs" value="2430"/>\n'
+    xml += '\t<string id="svvs" value="2340"/>\n'
+    xml += '\t<list id="files"/>\n'
+    xml += '\t<string id="description" value=""/>\n'
+    xml += '\t<string id="author" value=""/>\n'
+    xml += '\t<integer id="EDvb" value="1"/>\n'
+    xml += '\t<string id="EDfb" value=""/>\n'
+    xml += '</record>'
+
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8')
+    res.setHeader('Content-Disposition', 'attachment; filename="fm2014-export.xml"')
+    res.send(xml)
+
+  } catch (error) {
+    console.error('Erreur export FM2014:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
 // Global error handler
 app.use((err, _req, res, _next) => {
   console.error('Server error:', err?.stack || err)
