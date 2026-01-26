@@ -429,22 +429,26 @@ app.post('/api/export-fm2014', isAuthenticated, (req, res) => {
 
     players.forEach((player, index) => {
       const baseId = 2520827801080479000 + index
-      const version = 3509
+      const version = 3569 + index
+      const wrapperId = 1853322860 + index
       
-      // CHAQUE attribut dans son propre <record> séparé
-      
-      // Wrapper (1094992978)
+      // Wrapper (1094992978) - EXACTEMENT comme dans le fichier
       xml += '\t\t<record>\n'
-      xml += '\t\t\t<integer id="database_table_type" value="1"/>\n'
-      xml += '\t\t\t<large id="db_unique_id" value="' + baseId + '"/>\n'
+      xml += '\t\t\t<integer id="database_table_type" value="55"/>\n'
+      xml += '\t\t\t<large id="db_unique_id" value="4294967297"/>\n'
       xml += '\t\t\t<unsigned id="property" value="1094992978"/>\n'
-      xml += '\t\t\t<string id="new_value" value="' + (player.name || '') + '"/>\n'
+      xml += '\t\t\t<record id="new_value">\n'
+      xml += '\t\t\t\t<unsigned id="id" value="' + wrapperId + '"/>\n'
+      xml += '\t\t\t\t<integer id="database_table_type" value="1"/>\n'
+      xml += '\t\t\t\t<unsigned id="dcty" value="2"/>\n'
+      xml += '\t\t\t\t<large id="db_unique_id" value="' + baseId + '"/>\n'
+      xml += '\t\t\t</record>\n'
       xml += '\t\t\t<integer id="version" value="' + version + '"/>\n'
       xml += '\t\t\t<integer id="db_random_id" value="' + Math.floor(Math.random() * 999999999) + '"/>\n'
-      xml += '\t\t\t<integer id="odvl" value="0"/>\n'
+      xml += '\t\t\t<boolean id="is_client_field" value="true"/>\n'
       xml += '\t\t</record>\n'
       
-      // Name (1348693601)
+      // Name (1348693601) - EXACTEMENT comme dans le fichier
       xml += '\t\t<record>\n'
       xml += '\t\t\t<integer id="database_table_type" value="1"/>\n'
       xml += '\t\t\t<large id="db_unique_id" value="' + baseId + '"/>\n'
@@ -453,22 +457,30 @@ app.post('/api/export-fm2014', isAuthenticated, (req, res) => {
       xml += '\t\t\t<integer id="version" value="' + version + '"/>\n'
       xml += '\t\t\t<integer id="db_random_id" value="' + Math.floor(Math.random() * 999999999) + '"/>\n'
       xml += '\t\t\t<string id="odvl" value=""/>\n'
+      xml += '\t\t\t<boolean id="is_language_field" value="true"/>\n'
       xml += '\t\t</record>\n'
       
-      // Nationality (1349416041)
+      // Nationality (1349416041) - EXACTEMENT comme dans le fichier
       if (player.nationality) {
         xml += '\t\t<record>\n'
         xml += '\t\t\t<integer id="database_table_type" value="1"/>\n'
         xml += '\t\t\t<large id="db_unique_id" value="' + baseId + '"/>\n'
         xml += '\t\t\t<unsigned id="property" value="1349416041"/>\n'
-        xml += '\t\t\t<string id="new_value" value="' + player.nationality + '"/>\n'
+        xml += '\t\t\t<record id="new_value">\n'
+        xml += '\t\t\t\t<unsigned id="id" value="' + wrapperId + '"/>\n'
+        xml += '\t\t\t\t<large id="Nnat" value="' + player.nationality + '"/>\n'
+        xml += '\t\t\t\t<integer id="DBID" value="' + player.nationality + '"/>\n'
+        xml += '\t\t\t</record>\n'
         xml += '\t\t\t<integer id="version" value="' + version + '"/>\n'
         xml += '\t\t\t<integer id="db_random_id" value="' + Math.floor(Math.random() * 999999999) + '"/>\n'
-        xml += '\t\t\t<unsigned id="odvl" value="0"/>\n'
+        xml += '\t\t\t<record id="odvl">\n'
+        xml += '\t\t\t\t<unsigned id="id" value="1868854892"/>\n'
+        xml += '\t\t\t\t<large id="Nnat" value="3285649982205"/>\n'
+        xml += '\t\t\t</record>\n'
         xml += '\t\t</record>\n'
       }
       
-      // Birth Date (1348759394) - format date
+      // Birth Date (1348759394) - EXACTEMENT comme dans le fichier
       if (player.dateOfBirth) {
         const date = new Date(player.dateOfBirth)
         xml += '\t\t<record>\n'
