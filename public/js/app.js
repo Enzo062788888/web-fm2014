@@ -179,22 +179,28 @@ function renderAttributes(data) {
 
 function buildOutputXml(data) {
   const baseId = 2520827801080479005;
-  const version = 3509;
+  const version = 3569; // Utiliser 3569 comme dans votre exemple
   
   let records = '';
   
   propertyMap.forEach(p => {
     const randomId = Math.floor(100000000 + Math.random() * 900000000);
+    const subRandomId = Math.floor(1000000000 + Math.random() * 900000000);
     const value = data[p.key] ?? '';
     
     records += `\t\t<record>
-\t\t\t<integer id="database_table_type" value="1"/>
-\t\t\t<large id="db_unique_id" value="${baseId}"/>
+\t\t\t<integer id="database_table_type" value="55"/>
+\t\t\t<large id="db_unique_id" value="4294967297"/>
 \t\t\t<unsigned id="property" value="${p.id}"/>
-\t\t\t<string id="new_value" value="${escapeXml(String(value))}"/>
+\t\t\t<record id="new_value">
+\t\t\t\t<unsigned id="id" value="${subRandomId}"/>
+\t\t\t\t<integer id="database_table_type" value="1"/>
+\t\t\t\t<unsigned id="dcty" value="2"/>
+\t\t\t\t<large id="db_unique_id" value="${baseId}"/>
+\t\t\t</record>
 \t\t\t<integer id="version" value="${version}"/>
 \t\t\t<integer id="db_random_id" value="${randomId}"/>
-\t\t\t<integer id="odvl" value="0"/>
+\t\t\t<boolean id="is_client_field" value="true"/>
 \t\t</record>\n`;
   });
 
@@ -203,7 +209,7 @@ function buildOutputXml(data) {
 \t<list id="verf"/>
 \t<list id="db_changes">
 ${records}\t</list>
-\t<integer id="version" value="3509"/>
+\t<integer id="version" value="3569"/>
 \t<integer id="rule_group_version" value="1503"/>
 \t<boolean id="beta" value="false"/>
 \t<string id="orvs" value="2430"/>
