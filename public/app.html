@@ -731,7 +731,10 @@
           <div class="actions">
             <label class="btn" for="file-input">📂 Importer un XML</label>
             <input id="file-input" type="file" accept=".xml" hidden />
+            <label class="btn" for="folder-input" style="background: #28a745;">📁 Traiter un dossier</label>
+            <input id="folder-input" type="file" webkitdirectory hidden />
             <button id="download-btn" class="btn btn-secondary" disabled>💾 Télécharger le XML généré</button>
+            <button id="download-folder-btn" class="btn btn-secondary" style="background: #6f42c1; display: none;">📦 Télécharger ZIP</button>
           </div>
           <div id="dropzone" class="dropzone">Glisse ton fichier XML ici</div>
         </div>
@@ -741,6 +744,17 @@
         <section class="card">
           <h2>Attributs détectés</h2>
           <div id="attributes" class="attributes"></div>
+          
+          <!-- Statut de traitement en lot -->
+          <div id="batch-status" style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #e0e0e0; display: none;">
+            <h3 style="margin: 0 0 1rem 0; color: #1e3c72;">📊 Traitement en lot</h3>
+            <div id="batch-progress" style="background: #f5f5f5; border-radius: 8px; padding: 1.5rem;">
+              <div id="batch-info" style="margin-bottom: 1rem;">En cours...</div>
+              <div style="background: #e0e0e0; border-radius: 10px; height: 10px; overflow: hidden;">
+                <div id="batch-progress-bar" style="background: #28a745; height: 100%; width: 0%; transition: width 0.3s;"></div>
+              </div>
+            </div>
+          </div>
           
           <!-- Affichage du drapeau du pays -->
           <div id="flag-section" style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid #e0e0e0; display: none;">
@@ -930,6 +944,7 @@
     </div>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="js/app.js"></script>
   <script>
     // DEBUG: Tester le chargement du CSV
@@ -1659,6 +1674,169 @@
         slot.classList.remove('slot-highlight');
       });
     }
+    
+    // ==================== TRAITEMENT EN LOT ====================
+    
+    let batchFiles = [];
+    let batchZip = null;
+    let currentDatabaseId = 3947969150627134797;
+    
+    // Gestionnaire pour la sélection de dossier
+    document.getElementById('folder-input').addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files);
+      const xmlFiles = files.filter(file => 
+        file.name.toLowerCase().endsWith('.xml') || 
+        file.name.toLowerCase().endsWith('.pxml')
+      );
+      
+      if (xmlFiles.length === 0) {
+        alert('❌ Aucun fichier XML trouvé dans le dossier sélectionné');
+        return;
+      }
+      
+      console.log(`📁 ${xmlFiles.length} fichiers XML trouvés`);
+      
+      // Réinitialiser l'ID de base
+      currentDatabaseId = 3947969150627134797;
+      
+      // Afficher la section de statut
+      document.getElementById('batch-status').style.display = 'block';
+      document.getElementById('batch-info').textContent = `Traitement de ${xmlFiles.length} fichiers...`;
+      document.getElementById('batch-progress-bar').style.width = '0%';
+      
+      // Traiter les fichiers
+      await processBatchFiles(xmlFiles);
+    });
+    
+    async function processBatchFiles(files) {
+      batchZip = new JSZip();
+      const totalFiles = files.length;
+      let processedFiles = 0;
+      let validFiles = 0;
+      
+      for (const file of files) {
+        try {
+          console.log(`📄 Traitement de ${file.name}...`);
+          
+          // Lire le fichier
+          const xmlText = await readFileAsText(file);
+          
+          // Parser le XML
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+          
+          // Extraire les données
+          const data = parsePlayerData(xmlDoc);
+          if (!data.name) {
+            console.warn(`⚠️ Impossible d'extraire le nom du joueur de ${file.name}`);
+            continue;
+          }
+          
+          // Générer l'ID unique pour ce joueur
+          const playerId = currentDatabaseId++;
+          
+          // Générer le XML de sortie avec l'ID unique
+          const outputXml = buildOutputXmlWithId(data, playerId);
+          
+          // Créer le nom de fichier de sortie
+          const outputFileName = file.name
+            .replace(/\.p?xml$/i, '_FM2014.xml')
+            .replace(/[^\w\-_.]/g, '_'); // Nettoyer les caractères spéciaux
+          
+          // Ajouter au ZIP
+          batchZip.file(outputFileName, outputXml);
+          
+          validFiles++;
+          console.log(`✅ ${file.name} → ${outputFileName} (ID: ${playerId})`);
+          
+        } catch (error) {
+          console.error(`❌ Erreur lors du traitement de ${file.name}:`, error);
+        }
+        
+        // Mettre à jour la barre de progression
+        processedFiles++;
+        const progress = (processedFiles / totalFiles) * 100;
+        document.getElementById('batch-progress-bar').style.width = `${progress}%`;
+        document.getElementById('batch-info').textContent = 
+          `Fichier ${processedFiles}/${totalFiles} traité - ${validFiles} fichiers valides`;
+        
+        // Petit délai pour laisser l'UI se mettre à jour
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      
+      // Finaliser
+      if (validFiles > 0) {
+        document.getElementById('batch-info').innerHTML = 
+          `✅ Traitement terminé !<br>${validFiles} fichiers XML générés et prêts à télécharger`;
+        document.getElementById('download-folder-btn').style.display = 'inline-block';
+        console.log(`🎉 Traitement terminé: ${validFiles} fichiers XML générés`);
+      } else {
+        document.getElementById('batch-info').textContent = 
+          '❌ Aucun fichier valide trouvé';
+      }
+    }
+    
+    // Fonction pour lire un fichier comme texte
+    function readFileAsText(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = e => reject(e);
+        reader.readAsText(file);
+      });
+    }
+    
+    // Fonction pour générer le XML avec un ID spécifique
+    function buildOutputXmlWithId(data, playerId) {
+      const xml = buildOutputXml(data);
+      
+      // Remplacer l'ID par défaut par l'ID unique
+      return xml.replace(
+        /<record id="new_value">/g, 
+        `<record id="${playerId}">`
+      );
+    }
+    
+    // Gestionnaire pour le téléchargement du ZIP
+    document.getElementById('download-folder-btn').addEventListener('click', async () => {
+      if (!batchZip) {
+        alert('❌ Aucun fichier à télécharger');
+        return;
+      }
+      
+      try {
+        console.log('📦 Génération du fichier ZIP...');
+        
+        // Générer le ZIP
+        const zipBlob = await batchZip.generateAsync({
+          type: 'blob',
+          compression: 'DEFLATE',
+          compressionOptions: { level: 6 }
+        });
+        
+        // Créer le nom du fichier ZIP avec la date
+        const now = new Date();
+        const timestamp = now.toISOString().slice(0, 19).replace(/[T:]/g, '-');
+        const zipFileName = `FM2014_Export_${timestamp}.zip`;
+        
+        // Télécharger
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = zipFileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        console.log(`✅ ZIP téléchargé: ${zipFileName}`);
+        alert(`✅ Fichier ZIP téléchargé: ${zipFileName}`);
+        
+      } catch (error) {
+        console.error('❌ Erreur lors de la génération du ZIP:', error);
+        alert('❌ Erreur lors de la génération du fichier ZIP');
+      }
+    });
   </script>
 </body>
 </html>
