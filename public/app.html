@@ -1684,25 +1684,37 @@
     // Gestionnaire pour la sélection de dossier
     document.getElementById('folder-input').addEventListener('change', async (e) => {
       const files = Array.from(e.target.files);
-      const xmlFiles = files.filter(file => 
-        file.name.toLowerCase().endsWith('.xml') || 
-        file.name.toLowerCase().endsWith('.pxml')
-      );
+      
+      console.log(`📁 ${files.length} fichiers total trouvés:`, files.map(f => f.name));
+      
+      const xmlFiles = files.filter(file => {
+        const name = file.name.toLowerCase();
+        const isXml = name.endsWith('.xml') || name.endsWith('.pxml');
+        console.log(`📄 ${file.name} -> ${isXml ? 'INCLUS' : 'EXCLU'}`);
+        return isXml;
+      });
+      
+      console.log(`✅ ${xmlFiles.length} fichiers XML/PXML détectés`);
+      
+      // Afficher la section de statut
+      document.getElementById('batch-status').style.display = 'block';
       
       if (xmlFiles.length === 0) {
-        alert('❌ Aucun fichier XML trouvé dans le dossier sélectionné');
+        document.getElementById('batch-info').innerHTML = `
+          ❌ Aucun fichier XML/PXML trouvé<br>
+          <small>Fichiers détectés: ${files.length} (${files.map(f => f.name).join(', ')})</small>
+        `;
+        document.getElementById('batch-progress-bar').style.width = '100%';
+        document.getElementById('batch-progress-bar').style.background = '#dc3545';
         return;
       }
-      
-      console.log(`📁 ${xmlFiles.length} fichiers XML trouvés`);
       
       // Réinitialiser l'ID de base
       currentDatabaseId = 3947969150627134797;
       
-      // Afficher la section de statut
-      document.getElementById('batch-status').style.display = 'block';
       document.getElementById('batch-info').textContent = `Traitement de ${xmlFiles.length} fichiers...`;
       document.getElementById('batch-progress-bar').style.width = '0%';
+      document.getElementById('batch-progress-bar').style.background = '#28a745';
       
       // Traiter les fichiers
       await processBatchFiles(xmlFiles);
@@ -1713,23 +1725,36 @@
       const totalFiles = files.length;
       let processedFiles = 0;
       let validFiles = 0;
+      const errors = [];
       
       for (const file of files) {
         try {
-          console.log(`📄 Traitement de ${file.name}...`);
+          console.log(`📄 Traitement de ${file.name} (taille: ${file.size} octets)...`);
           
           // Lire le fichier
           const xmlText = await readFileAsText(file);
+          console.log(`📖 Contenu lu: ${xmlText.length} caractères`);
+          
+          if (!xmlText.trim()) {
+            throw new Error('Fichier vide');
+          }
           
           // Parser le XML
           const parser = new DOMParser();
           const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
           
+          // Vérifier les erreurs de parsing XML
+          const parseError = xmlDoc.querySelector('parsererror');
+          if (parseError) {
+            throw new Error(`Erreur XML: ${parseError.textContent}`);
+          }
+          
           // Extraire les données
           const data = parsePlayerData(xmlDoc);
+          console.log(`👤 Données extraites:`, data);
+          
           if (!data.name) {
-            console.warn(`⚠️ Impossible d'extraire le nom du joueur de ${file.name}`);
-            continue;
+            throw new Error('Impossible d\'extraire le nom du joueur');
           }
           
           // Générer l'ID unique pour ce joueur
@@ -1751,14 +1776,16 @@
           
         } catch (error) {
           console.error(`❌ Erreur lors du traitement de ${file.name}:`, error);
+          errors.push(`${file.name}: ${error.message}`);
         }
         
         // Mettre à jour la barre de progression
         processedFiles++;
         const progress = (processedFiles / totalFiles) * 100;
         document.getElementById('batch-progress-bar').style.width = `${progress}%`;
-        document.getElementById('batch-info').textContent = 
-          `Fichier ${processedFiles}/${totalFiles} traité - ${validFiles} fichiers valides`;
+        document.getElementById('batch-info').innerHTML = 
+          `Fichier ${processedFiles}/${totalFiles} traité - ${validFiles} fichiers valides<br>
+          <small>${errors.length > 0 ? `${errors.length} erreurs` : 'Aucune erreur'}</small>`;
         
         // Petit délai pour laisser l'UI se mettre à jour
         await new Promise(resolve => setTimeout(resolve, 10));
@@ -1767,12 +1794,14 @@
       // Finaliser
       if (validFiles > 0) {
         document.getElementById('batch-info').innerHTML = 
-          `✅ Traitement terminé !<br>${validFiles} fichiers XML générés et prêts à télécharger`;
+          `✅ Traitement terminé !<br>${validFiles} fichiers XML générés et prêts à télécharger
+          ${errors.length > 0 ? `<br><small style="color: #dc3545;">${errors.length} erreurs: ${errors.join(', ')}</small>` : ''}`;
         document.getElementById('download-folder-btn').style.display = 'inline-block';
         console.log(`🎉 Traitement terminé: ${validFiles} fichiers XML générés`);
       } else {
-        document.getElementById('batch-info').textContent = 
-          '❌ Aucun fichier valide trouvé';
+        document.getElementById('batch-info').innerHTML = 
+          `❌ Aucun fichier valide trouvé<br>
+          <small style="color: #dc3545;">Erreurs: ${errors.join('<br>')}</small>`;
       }
     }
     
