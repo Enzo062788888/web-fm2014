@@ -1739,18 +1739,8 @@
             throw new Error('Fichier vide');
           }
           
-          // Parser le XML
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-          
-          // Vérifier les erreurs de parsing XML
-          const parseError = xmlDoc.querySelector('parsererror');
-          if (parseError) {
-            throw new Error(`Erreur XML: ${parseError.textContent}`);
-          }
-          
-          // Extraire les données
-          const data = parsePlayerData(xmlDoc);
+          // Extraire les données directement du texte XML
+          const data = parseXml(xmlText);
           console.log(`👤 Données extraites:`, data);
           
           if (!data.name) {
@@ -1817,13 +1807,13 @@
     
     // Fonction pour générer le XML avec un ID spécifique
     function buildOutputXmlWithId(data, playerId) {
+      // Utiliser la fonction existante buildOutputXml et remplacer l'ID
       const xml = buildOutputXml(data);
       
       // Remplacer l'ID par défaut par l'ID unique
-      return xml.replace(
-        /<record id="new_value">/g, 
-        `<record id="${playerId}">`
-      );
+      // Rechercher le pattern baseId dans le XML généré et le remplacer par playerId
+      const baseIdPattern = /large id="db_unique_id" value="\d+"/g;
+      return xml.replace(baseIdPattern, `large id="db_unique_id" value="${playerId}"`);
     }
     
     // Gestionnaire pour le téléchargement du ZIP
