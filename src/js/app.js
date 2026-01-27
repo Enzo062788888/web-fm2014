@@ -178,26 +178,42 @@ function renderAttributes(data) {
 }
 
 function buildOutputXml(data) {
-  const records = propertyMap.map(p => {
+  const baseId = 2520827801080479005;
+  const version = 3509;
+  
+  let records = '';
+  
+  propertyMap.forEach(p => {
     const randomId = Math.floor(100000000 + Math.random() * 900000000);
-    return `        <record>
-            <integer id="database_table_type" value="1"/>
-            <large id="db_unique_id" value="2520827801080479005"/>
-            <unsigned id="property" value="${p.id}"/>
-            <string id="new_value" value="${escapeXml(data[p.key] ?? '')}"/>
-            <integer id="version" value="3509"/>
-            <integer id="db_random_id" value="${randomId}"/>
-            <integer id="odvl" value="0"/>
-        </record>`;
-  }).join('\n');
+    const value = data[p.key] ?? '';
+    
+    records += `\t\t<record>
+\t\t\t<integer id="database_table_type" value="1"/>
+\t\t\t<large id="db_unique_id" value="${baseId}"/>
+\t\t\t<unsigned id="property" value="${p.id}"/>
+\t\t\t<string id="new_value" value="${escapeXml(String(value))}"/>
+\t\t\t<integer id="version" value="${version}"/>
+\t\t\t<integer id="db_random_id" value="${randomId}"/>
+\t\t\t<integer id="odvl" value="0"/>
+\t\t</record>\n`;
+  });
 
   return `<?xml version="1.0" encoding="utf-8"?>
-<ProfessionalPlayer>
-    <alterations>
-${records}
-    </alterations>
-    <integer id="version" value="3569"/>
-</ProfessionalPlayer>`;
+<record>
+\t<list id="verf"/>
+\t<list id="db_changes">
+${records}\t</list>
+\t<integer id="version" value="3509"/>
+\t<integer id="rule_group_version" value="1503"/>
+\t<boolean id="beta" value="false"/>
+\t<string id="orvs" value="2430"/>
+\t<string id="svvs" value="2340"/>
+\t<list id="files"/>
+\t<string id="description" value=""/>
+\t<string id="author" value=""/>
+\t<integer id="EDvb" value="1"/>
+\t<string id="EDfb" value=""/>
+</record>`;
 }
 
 function escapeXml(str) {
