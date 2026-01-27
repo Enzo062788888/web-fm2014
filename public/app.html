@@ -1754,9 +1754,15 @@
           const outputXml = buildOutputXmlWithId(data, playerId);
           
           // Créer le nom de fichier de sortie
-          const outputFileName = file.name
-            .replace(/\.p?xml$/i, '_FM2014.xml')
-            .replace(/[^\w\-_.]/g, '_'); // Nettoyer les caractères spéciaux
+          let outputFileName = file.name.replace(/\.p?xml$/i, '_FM2014.xml');
+          
+          // Nettoyer le nom mais préserver les caractères accentués
+          outputFileName = outputFileName
+            .replace(/[<>:"/\\|?*]/g, '_') // Supprimer seulement les caractères interdits dans les noms de fichiers
+            .replace(/\s+/g, '_') // Remplacer les espaces par des underscores
+            .replace(/_+/g, '_'); // Éviter les underscores multiples
+          
+          console.log(`📝 Nom de fichier: "${file.name}" -> "${outputFileName}"`);
           
           // Ajouter au ZIP
           batchZip.file(outputFileName, outputXml);
