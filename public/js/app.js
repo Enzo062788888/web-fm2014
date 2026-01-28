@@ -291,45 +291,24 @@ function savePlayerToDatabase(data, xmlContent) {
       data: data // Sauvegarder toutes les données
     };
     
-    // Charger les joueurs depuis le serveur
-    fetch('/api/user-data/players')
-      .then(res => res.json())
-      .then(serverData => {
-        const players = serverData.success ? serverData.players : [];
-        
-        // Vérifier si le joueur existe déjà (par nom)
-        const existingIndex = players.findIndex(p => p.name === player.name);
-        if (existingIndex !== -1) {
-          // Mettre à jour le joueur existant
-          players[existingIndex] = player;
-        } else {
-          // Ajouter le nouveau joueur
-          players.push(player);
-        }
-        
-        // Sauvegarder dans localStorage ET sur le serveur
-        localStorage.setItem('fm2014_players', JSON.stringify(players));
-        savePlayersToServer(); // Synchroniser avec le serveur
-        
-        // Afficher une notification
-        showNotification(`🎯 ${player.name} ajouté à la base de données avec image R2`);
-      })
-      .catch(error => {
-        console.error('Erreur chargement serveur:', error);
-        // Fallback: utiliser localStorage si le serveur ne répond pas
-        const saved = localStorage.getItem('fm2014_players');
-        const players = saved ? JSON.parse(saved) : [];
-        
-        const existingIndex = players.findIndex(p => p.name === player.name);
-        if (existingIndex !== -1) {
-          players[existingIndex] = player;
-        } else {
-          players.push(player);
-        }
-        
-        localStorage.setItem('fm2014_players', JSON.stringify(players));
-        showNotification(`🎯 ${player.name} ajouté localement (hors ligne)`);
-      });
+    // Charger et sauvegarder uniquement dans localStorage
+    const saved = localStorage.getItem('fm2014_players');
+    const players = saved ? JSON.parse(saved) : [];
+    
+    // Vérifier si le joueur existe déjà (par nom)
+    const existingIndex = players.findIndex(p => p.name === player.name);
+    if (existingIndex !== -1) {
+      // Mettre à jour le joueur existant
+      players[existingIndex] = player;
+      showNotification(`🔄 ${player.name} mis à jour dans la base de données`);
+    } else {
+      // Ajouter le nouveau joueur
+      players.push(player);
+      showNotification(`🎯 ${player.name} ajouté à la base de données`);
+    }
+    
+    // Sauvegarder uniquement dans localStorage
+    localStorage.setItem('fm2014_players', JSON.stringify(players));
   } catch (e) {
     console.error('Erreur sauvegarde:', e);
   }
@@ -504,51 +483,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ===== SYNCHRONISATION AVEC LE SERVEUR =====
 
-// Charger les joueurs de l'utilisateur depuis le serveur
-async function loadPlayersFromServer() {
-  try {
-    const response = await fetch('/api/user-data/players');
-    const data = await response.json();
-    
-    if (data.success && data.players && data.players.length > 0) {
-      // Sauvegarder dans localStorage pour la compaté
-      localStorage.setItem('fm2014_players', JSON.stringify(data.players));
-      console.log(`💾 ${data.players.length} joueurs chargés depuis le serveur`);
-      
-      // Rafraîchir l'affichage si on est sur la page base de données
-      const dbSection = document.getElementById('database-section');
-      if (dbSection && !dbSection.classList.contains('hidden')) {
-        loadPlayersDatabase();
-      }
-    } else {
-      console.log('💾 Aucun joueur sauvegardé sur le serveur');
-    }
-  } catch (error) {
-    console.error('❌ Erreur chargement joueurs:', error);
-    // Si non connecté ou erreur, utiliser localStorage local
-  }
-}
-
-// Sauvegarder les joueurs sur le serveur
-async function savePlayersToServer() {
+// Charger les joueurs depuis localStorage uniquement
+function loadPlayersFromLocalStorage() {
   try {
     const saved = localStorage.getItem('fm2014_players');
     const players = saved ? JSON.parse(saved) : [];
-    
-    const response = await fetch('/api/user-data/players', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ players })
-    });
-    
-    const data = await response.json();
-    
-    if (data.success) {
-      console.log(`✅ ${players.length} joueurs sauvegardés sur le serveur`);
-      showNotification(`💾 ${players.length} joueurs sauvegardés !`);
-    } else {
+    console.log(`💾 ${players.length} joueurs chargés depuis localStorage`);
+    return players;
+  } catch (error) {
+    console.error('❌ Erreur chargement localStorage:', error);
+    return [];
+  }
+}
+
+// Fonction simple pour sauvegarder localement (supprime la sync serveur)
       console.warn('⚠️ Erreur sauvegarde serveur:', data);
     }
   } catch (error) {

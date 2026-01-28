@@ -713,7 +713,7 @@
         <span id="sidebar-username">Utilisateur</span>
       </div>
       <button class="btn-sync" onclick="exportToFM2014()" style="padding: 0.75rem; background: rgba(30, 60, 114, 0.3); border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: 600; transition: background 0.2s; margin-bottom: 0.5rem;">📥 Exporter FM2014</button>
-      <button class="btn-sync" onclick="savePlayersToServer()" style="padding: 0.75rem; background: rgba(76, 175, 80, 0.3); border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: 600; transition: background 0.2s; margin-bottom: 0.5rem;">💾 Synchroniser</button>
+      <button class="btn-sync" onclick="showLocalStorageNotification()" style="padding: 0.75rem; background: rgba(76, 175, 80, 0.3); border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: 600; transition: background 0.2s; margin-bottom: 0.5rem;">💾 LocalStorage</button>
       <button class="btn-logout" onclick="logout()">🚪 Déconnexion</button>
     </div>
   </nav>
@@ -1018,23 +1018,12 @@
       window.location.href = 'auth.html';
     }
 
-    // Charger et afficher les joueurs de la base de données
-    async function loadPlayersDatabase() {
+    // Charger et afficher les joueurs depuis localStorage uniquement
+    function loadPlayersDatabase() {
       try {
-        // Charger depuis le serveur en priorité
-        const response = await fetch('/api/user-data/players');
-        const data = await response.json();
-        
-        let players = [];
-        if (data.success && data.players) {
-          players = data.players;
-          // Mettre à jour localStorage pour la synchronisation
-          localStorage.setItem('fm2014_players', JSON.stringify(players));
-        } else {
-          // Fallback: utiliser localStorage si le serveur ne répond pas
-          const saved = localStorage.getItem('fm2014_players');
-          players = saved ? JSON.parse(saved) : [];
-        }
+        // Charger uniquement depuis localStorage
+        const saved = localStorage.getItem('fm2014_players');
+        const players = saved ? JSON.parse(saved) : [];
         
         const playersList = document.getElementById('players-list');
         const playerCount = document.getElementById('player-count');
@@ -1123,24 +1112,18 @@
       `).join('');
       } catch (error) {
         console.error('Erreur chargement joueurs:', error);
-        // En cas d'erreur, utiliser localStorage
-        const saved = localStorage.getItem('fm2014_players');
-        const players = saved ? JSON.parse(saved) : [];
-        
         const playersList = document.getElementById('players-list');
         const playerCount = document.getElementById('player-count');
         
         if (playersList) {
-          playerCount.textContent = players.length;
-          if (players.length === 0) {
-            playersList.innerHTML = `
-              <div style="grid-column: 1 / -1; padding: 3rem; text-align: center; color: #999;">
-                <div style="font-size: 4rem; margin-bottom: 1rem;">📭</div>
-                <h3>Aucun joueur enregistré</h3>
-                <p>Importez un fichier XML dans le générateur pour commencer</p>
-              </div>
-            `;
-          }
+          playerCount.textContent = 0;
+          playersList.innerHTML = `
+            <div style="grid-column: 1 / -1; padding: 3rem; text-align: center; color: #999;">
+              <div style="font-size: 4rem; margin-bottom: 1rem;">❌</div>
+              <h3>Erreur de chargement</h3>
+              <p>Impossible de charger les données depuis localStorage</p>
+            </div>
+          `;
         }
       }
     }
@@ -1161,68 +1144,79 @@
       }
     }
 
-    async function deletePlayer(index) {
+    function deletePlayer(index) {
       if (!confirm('Êtes-vous sûr de vouloir supprimer ce joueur ?')) return;
       
       try {
-        // Charger depuis le serveur
-        const response = await fetch('/api/user-data/players');
-        const data = await response.json();
-        const players = data.success ? data.players : [];
+        // Charger depuis localStorage
+        const saved = localStorage.getItem('fm2014_players');
+        const players = saved ? JSON.parse(saved) : [];
         
         // Supprimer le joueur
         players.splice(index, 1);
         
-        // Sauvegarder sur le serveur
-        await fetch('/api/user-data/players', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ players })
-        });
-        
-        // Mettre à jour localStorage
+        // Sauvegarder dans localStorage
         localStorage.setItem('fm2014_players', JSON.stringify(players));
         
         // Recharger l'affichage
         loadPlayersDatabase();
       } catch (error) {
         console.error('Erreur suppression:', error);
-        // Fallback: supprimer localement
-        const saved = localStorage.getItem('fm2014_players');
-        const players = saved ? JSON.parse(saved) : [];
-        players.splice(index, 1);
-        localStorage.setItem('fm2014_players', JSON.stringify(players));
-        loadPlayersDatabase();
+        alert('Erreur lors de la suppression');
       }
     }
-
-    async function clearDatabase() {
+    function clearDatabase() {
       if (!confirm('Êtes-vous sûr de vouloir supprimer TOUS les joueurs ?')) return;
       
       try {
-        // Supprimer sur le serveur
-        await fetch('/api/user-data/players', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ players: [] })
-        });
-        
-        // Supprimer localement
+        // Supprimer uniquement en local
         localStorage.removeItem('fm2014_players');
         
         // Recharger l'affichage
         loadPlayersDatabase();
       } catch (error) {
         console.error('Erreur suppression:', error);
-        // Fallback: supprimer localement
-        localStorage.removeItem('fm2014_players');
-        loadPlayersDatabase();
+        alert('Erreur lors de la suppression');
       }
     }
-      
-      localStorage.removeItem('fm2014_players');
-      loadPlayersDatabase();
+        localStorage.removeItem('fm2014_players');
+        
+        // Recharger l'affichage
+        loadPlayersDatabase();
+      } catch (error) {
+        console.error('Erreur suppression:', error);
+        alert('Erreur lors de la suppression');
+      }
+    }
     
+    // Fonction pour afficher les infos sur localStorage
+    function showLocalStorageNotification() {
+      const saved = localStorage.getItem('fm2014_players');
+      const players = saved ? JSON.parse(saved) : [];
+      
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4caf50;
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 10000;
+        font-weight: 600;
+        max-width: 300px;
+      `;
+      notification.innerHTML = `
+        💾 <strong>LocalStorage actif</strong><br>
+        ${players.length} joueurs stockés localement<br>
+        <small>Pas de synchronisation serveur</small>
+      `;
+      document.body.appendChild(notification);
+      
+      setTimeout(() => notification.remove(), 3000);
+    }
 
     // Variables globales pour la modale
     let currentPlayerIndex = -1;
