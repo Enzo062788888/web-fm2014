@@ -1028,88 +1028,103 @@
         const playersList = document.getElementById('players-list');
         const playerCount = document.getElementById('player-count');
         
-        if (!playersList || !playerCount) return;
+        if (!playersList || !playerCount) {
+          console.error('Éléments DOM non trouvés');
+          return;
+        }
         
         playerCount.textContent = players.length;
       
-      if (players.length === 0) {
-        playersList.innerHTML = `
-          <div style="grid-column: 1 / -1; padding: 3rem; text-align: center; color: #999;">
-            <div style="font-size: 4rem; margin-bottom: 1rem;">📭</div>
-            <h3>Aucun joueur enregistré</h3>
-            <p>Importez un fichier XML dans le générateur pour commencer</p>
-          </div>
-        `;
-        return;
-      }
-      
-      playersList.innerHTML = players.map((player, index) => `
-        <div 
-          style="border: 2px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; background: white; cursor: pointer; transition: all 0.2s;"
-          onmouseover="this.style.borderColor='#667eea'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.2)';"
-          onmouseout="this.style.borderColor='#e0e0e0'; this.style.transform='translateY(0)'; this.style.boxShadow='none';"
-          onclick="openPlayerModal(${index})">
-          ${player.imageUrl ? `
-            <div style="text-align: center; margin-bottom: 1rem;">
-              <img 
-                src="${player.imageUrl}" 
-                alt="${player.name}" 
-                style="width: 120px; height: 120px; object-fit: cover; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"
-                onerror="this.style.display='none'"
-              />
+        if (players.length === 0) {
+          playersList.innerHTML = `
+            <div style="grid-column: 1 / -1; padding: 3rem; text-align: center; color: #999;">
+              <div style="font-size: 4rem; margin-bottom: 1rem;">📭</div>
+              <h3>Aucun joueur enregistré</h3>
+              <p>Importez un fichier XML dans le générateur pour commencer</p>
             </div>
-          ` : ''}
-          <h3 style="margin: 0 0 1rem 0; color: #1e3c72; font-size: 1.2rem;">
-            ${player.name}
-            <span style="float: right; font-size: 0.8rem; background: #667eea; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">
-              CA ${player.ca}
-            </span>
-          </h3>
-          <div style="display: grid; gap: 0.5rem; font-size: 0.9rem; color: #666; margin-bottom: 1rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span><strong>Nation:</strong></span>
-              <span>${(() => {
-                const country = getCountryByNationId(player.nation);
-                if (country) {
-                  return `<img 
-                    src="https://pub-775c150b8211432db9dbf4f59277c50f.r2.dev/drapeaux/${country}.png" 
-                    alt="${country}" 
-                    style="height: 28px; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);"
-                    onerror="this.alt='${player.nation}'"
-                  />`;
-                }
-                return player.nation;
-              })()}</span>
+          `;
+          return;
+        }
+        
+        playersList.innerHTML = players.map((player, index) => {
+          // Gérer les cas où player n'a pas toutes les propriétés
+          const playerName = player.name || 'Sans nom';
+          const playerCA = player.ca || '0';
+          const playerImageUrl = player.imageUrl || '';
+          const playerNation = player.nation || '0';
+          
+          let nationHtml = playerNation;
+          try {
+            const country = getCountryByNationId(playerNation);
+            if (country) {
+              nationHtml = `<img 
+                src="https://pub-775c150b8211432db9dbf4f59277c50f.r2.dev/drapeaux/${country}.png" 
+                alt="${country}" 
+                style="height: 28px; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);"
+                onerror="this.alt='${playerNation}'"
+              />`;
+            }
+          } catch(e) {
+            console.warn('Erreur getCountryByNationId:', e);
+          }
+          
+          return `
+            <div 
+              style="border: 2px solid #e0e0e0; border-radius: 12px; padding: 1.5rem; background: white; cursor: pointer; transition: all 0.2s;"
+              onmouseover="this.style.borderColor='#667eea'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.2)';"
+              onmouseout="this.style.borderColor='#e0e0e0'; this.style.transform='translateY(0)'; this.style.boxShadow='none';"
+              onclick="openPlayerModal(${index})">
+              ${playerImageUrl ? `
+                <div style="text-align: center; margin-bottom: 1rem;">
+                  <img 
+                    src="${playerImageUrl}" 
+                    alt="${playerName}" 
+                    style="width: 120px; height: 120px; object-fit: cover; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"
+                    onerror="this.style.display='none'"
+                  />
+                </div>
+              ` : ''}
+              <h3 style="margin: 0 0 1rem 0; color: #1e3c72; font-size: 1.2rem;">
+                ${playerName}
+                <span style="float: right; font-size: 0.8rem; background: #667eea; color: white; padding: 0.25rem 0.5rem; border-radius: 4px;">
+                  CA ${playerCA}
+                </span>
+              </h3>
+              <div style="display: grid; gap: 0.5rem; font-size: 0.9rem; color: #666; margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span><strong>Nation:</strong></span>
+                  <span>${nationHtml}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span><strong>Date de naissance:</strong></span>
+                  <span>${player.birthDate || 'N/A'}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span><strong>PA:</strong></span>
+                  <span>${player.pa || '0'}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span><strong>Taille / Poids:</strong></span>
+                  <span>${player.height || '0'}cm / ${player.weight || '0'}kg</span>
+                </div>
+              </div>
+              <div style="display: flex; gap: 0.5rem;" onclick="event.stopPropagation();">
+                <button 
+                  onclick="downloadPlayerXml(${index})" 
+                  class="btn" 
+                  style="flex: 1; padding: 0.75rem; font-size: 0.9rem;">
+                  💾 XML
+                </button>
+                <button 
+                  onclick="deletePlayer(${index})" 
+                  class="btn-secondary" 
+                  style="padding: 0.75rem; background: #f5576c; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                  🗑️
+                </button>
+              </div>
             </div>
-            <div style="display: flex; justify-content: space-between;">
-              <span><strong>Date de naissance:</strong></span>
-              <span>${player.birthDate}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <span><strong>PA:</strong></span>
-              <span>${player.pa}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <span><strong>Taille / Poids:</strong></span>
-              <span>${player.height}cm / ${player.weight}kg</span>
-            </div>
-          </div>
-          <div style="display: flex; gap: 0.5rem;" onclick="event.stopPropagation();">
-            <button 
-              onclick="downloadPlayerXml(${index})" 
-              class="btn" 
-              style="flex: 1; padding: 0.75rem; font-size: 0.9rem;">
-              💾 XML
-            </button>
-            <button 
-              onclick="deletePlayer(${index})" 
-              class="btn-secondary" 
-              style="padding: 0.75rem; background: #f5576c; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
-              🗑️
-            </button>
-          </div>
-        </div>
-      `).join('');
+          `;
+        }).join('');
       } catch (error) {
         console.error('Erreur chargement joueurs:', error);
         const playersList = document.getElementById('players-list');
@@ -1122,6 +1137,7 @@
               <div style="font-size: 4rem; margin-bottom: 1rem;">❌</div>
               <h3>Erreur de chargement</h3>
               <p>Impossible de charger les données depuis localStorage</p>
+              <p style="font-size: 0.9rem; color: #666;">${error.message}</p>
             </div>
           `;
         }
